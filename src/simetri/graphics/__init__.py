@@ -69,7 +69,7 @@ from ..coloring.pastels import *
 from ..coloring.swatches import *
 from ..extensions.easing import *
 from ..extensions.l_system import l_system
-from ..extensions.string_patterns import string_star, get_skipped_items
+from ..extensions.stellations import stellate, get_skipped_items
 from ..extensions.table import Table as Table
 from ..extensions.times_glyphs import times_glyph
 from ..extensions.tree import TreeNode, make_tree
@@ -210,7 +210,7 @@ from ..geom.polygons.dcel import (
     overlay,
     union,
 )
-from ..helpers.help_utils import _similar_sg_attribute_names, doc, help
+from ..helpers.help_utils import _similar_sg_attribute_names, ask, doc, help
 from ..render.render_svg.svg_utils import (
     extract_glyph_path,
     extract_glyph_svg_path,

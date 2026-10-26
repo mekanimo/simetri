@@ -24,7 +24,7 @@ import numpy as np
 
 from ..base.all_enums import Anchor, Side, Types, WarningType
 from ..base.common import PointType, get_unique_id
-from ..config.settings import VOID, issue_warning, runtime_defaults
+from ..config.settings import VOID, issue_warning
 from .geom_utils import midpoint
 from .geometry import polar_to_cartesian, positive_angle
 from .points.point_utils import distance
@@ -1048,25 +1048,18 @@ def bounding_box(points: Sequence[PointType]) -> BoundingBox:
     else:
         points = np.array(points)  # numpy array of points
     n_points = len(points)
-    BB_EPSILON = runtime_defaults["BB_EPSILON"]
     if n_points == 0:  # empty list of points
         raise ValueError("Empty list of points")
 
     if len(points.shape) == 1:
         # single point
         min_x, min_y = points
-        max_x = min_x + BB_EPSILON
-        max_y = min_y + BB_EPSILON
+        max_x = min_x
+        max_y = min_y
     else:
         # find minimum and maximum coordinates
         min_x, min_y = points.min(axis=0)
         max_x, max_y = points.max(axis=0)
-        if min_x == max_x:  # this could be a vertical line or degenerate points
-            max_x += BB_EPSILON
-        if (
-            min_y == max_y
-        ):  # this could be a horizontal line or degenerate points
-            max_y += BB_EPSILON
     # bounding box corners
     bottom_left = (min_x, min_y)
     top_right = (max_x, max_y)

@@ -33,7 +33,7 @@ from simetri.render.render_tikz.tikz import (
 )
 
 if TYPE_CHECKING:
-    from simetri.render import Canvas
+    from simetri.render.canvas import Canvas
     from simetri.render.sketch import Sketch
 
 

@@ -39,7 +39,12 @@ from ...helpers.labels import (
     sketch_label_font_size_pt,
     sketch_requests_vertex_labels,
 )
-from ...helpers.utilities import detokenize
+from ...helpers.illustration import tag_text_layout
+from ...helpers.utilities import (
+    detokenize,
+    detokenize_literal_dollars,
+    tag_tikz_mixed_text,
+)
 from .tikz_common import (
     _clip_line_to_rect,
     _line_limits,
@@ -147,11 +152,6 @@ def draw_helplines_sketch(sketch: Any) -> str:
     Examples:
         >>> draw_helplines_sketch  # doctest: +SKIP
     """
-    x, y = sketch.pos[:2]
-    width = sketch.width
-    height = sketch.height
-    spacing = sketch.spacing
-    cs_size = sketch.cs_size
     grid_style = sketch.grid_style
     x_axis_style = sketch.x_axis_style
     y_axis_style = sketch.y_axis_style
@@ -171,35 +171,33 @@ def draw_helplines_sketch(sketch: Any) -> str:
 
     lines = []
 
-    # Grid lines (horizontal + vertical)
-    n_h = int(height / spacing)
-    n_v = int(width / spacing)
     grid_opts = _line_options(grid_style)
-
-    for i in range(n_h + 1):
-        yi = y + i * spacing
-        lines.append(f"\\draw[{grid_opts}] ({x}, {yi}) -- ({x + width}, {yi});")
-
-    for i in range(n_v + 1):
-        xi = x + i * spacing
+    for start, end in sketch.lines:
         lines.append(
-            f"\\draw[{grid_opts}] ({xi}, {y}) -- ({xi}, {y + height});"
+            f"\\draw[{grid_opts}] ({start[0]}, {start[1]}) -- ({end[0]}, {end[1]});"
         )
 
     # Coordinate system axes + origin marker
-    if cs_size and cs_size > 0:
+    if sketch.x_axis is not None and sketch.y_axis is not None:
         x_axis_opts = _line_options(x_axis_style)
         y_axis_opts = _line_options(y_axis_style)
+        x_axis = sketch.x_axis
+        y_axis = sketch.y_axis
+        origin = sketch.origin
 
-        lines.append(f"\\draw[{x_axis_opts}] (0, 0) -- ({cs_size}, 0);")
-        lines.append(f"\\draw[{y_axis_opts}] (0, 0) -- (0, {cs_size});")
+        lines.append(
+            f"\\draw[{x_axis_opts}] ({x_axis[0][0]}, {x_axis[0][1]}) -- ({x_axis[1][0]}, {x_axis[1][1]});"
+        )
+        lines.append(
+            f"\\draw[{y_axis_opts}] ({y_axis[0][0]}, {y_axis[0][1]}) -- ({y_axis[1][0]}, {y_axis[1][1]});"
+        )
 
         origin_style = sketch.origin_style
         origin_fill_color = color_to_tikz(origin_style["fill_color"])
         origin_line_color = color_to_tikz(origin_style["line_color"])
         lines.append(
             f"\\filldraw[draw={origin_line_color}, fill={origin_fill_color}] "
-            f"(0, 0) circle ({sketch.origin_size});"
+            f"({origin[0]}, {origin[1]}) circle ({sketch.origin_size});"
         )
 
     return "\n".join(lines) + "\n"
@@ -343,7 +341,29 @@ def draw_tag_sketch(sketch: Any) -> str:
         return res
 
     res = []
-    text_value = detokenize(sketch.text)
+    source_text = sketch.text if sketch.text is not None else ""
+    font_family = sketch.font_family
+    font_size = sketch.font_size
+    if font_family is None:
+        font_family = runtime_defaults["font_family"]
+    if font_size is None:
+        font_size = runtime_defaults["font_size"]
+    lines, block_width, _block_height, _numeric_size = tag_text_layout(
+        source_text,
+        font_family,
+        font_size,
+        sketch.text_width,
+    )
+    mixed_text = tag_tikz_mixed_text(source_text)
+    if mixed_text is not None:
+        text_value = mixed_text
+    elif len(lines) == 1:
+        text_value = detokenize_literal_dollars(source_text)
+    else:
+        text_value = r"\\".join(
+            f"\\mbox{{{detokenize_literal_dollars(line)}}}"
+            for line in lines
+        )
     x, y = sketch.pos[:2]
 
     options = ""
@@ -391,10 +411,14 @@ def draw_tag_sketch(sketch: Any) -> str:
     if sketch.back_style == BackStyle.PATTERN and sketch.fill:
         pattern_options = get_pattern_options(sketch)[0]
         options += ", " + pattern_options
-    if sketch.align.value:
+    if sketch.align is not None and sketch.align.value:
         options += f", align={sketch.align.value}"
+    elif len(lines) > 1:
+        options += ", align=left"
     if sketch.text_width:
         options += f", text width={sketch.text_width}"
+    elif len(lines) > 1 and block_width > 0:
+        options += f", text width={block_width}"
     if sketch.angle:
         options += f", rotate={degrees(sketch.angle)}"
 

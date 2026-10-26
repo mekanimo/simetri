@@ -187,9 +187,7 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
         Examples:
             >>> pass  # doctest: +SKIP
         """
-        code = [
-            get_sketch_code(sketch, canvas, ind, []) for sketch in sketches
-        ]
+        code = [get_sketch_code(sketch, canvas, ind, []) for sketch in sketches]
         return "\n".join(code)
 
     def get_sketch_code(
@@ -446,7 +444,9 @@ def svg_shape(
             fill_style = get_fill_style_options(
                 sketch, style_shape_type, exceptions=exceptions
             )
-        double_line_exceptions = list(exceptions) if exceptions is not None else []
+        double_line_exceptions = (
+            list(exceptions) if exceptions is not None else []
+        )
         double_line_exceptions.extend(["stroke", "line_color", "line_width"])
         extra_line_style = get_line_style_options(
             sketch,
@@ -483,6 +483,8 @@ def svg_shape(
     style_attr = ""
     if style_class:
         class_attr = f' class= "{style_class}"'
+        if shape_type == "polyline":
+            style_attr = ' style="fill: none;"'
     else:
         style_parts = [get_line_style_options(sketch, exceptions=exceptions)]
         if shape_type != "line" and not skip_fill_style:
@@ -1068,9 +1070,7 @@ def footer() -> str:
 """
 
 
-def get_styles(
-    canvas: Canvas, styles_dict: dict[str, dict[str, str]]
-) -> str:
+def get_styles(canvas: Canvas, styles_dict: dict[str, dict[str, str]]) -> str:
     """Build a ``<style>`` block from CSS class dictionaries.
 
     Args:
@@ -1115,15 +1115,15 @@ def get_svg_code(canvas: Canvas) -> str:
         >>> get_svg_code  # doctest: +SKIP
     """
     from ..canvas import (
-        effective_border_for_export,
-        warn_vertex_coord_label_sizing,
+        _effective_border_for_export,
+        _warn_vertex_coord_label_sizing,
     )
 
     vertices = canvas._all_vertices
     if canvas.page_size is None:
-        warn_vertex_coord_label_sizing(canvas)
+        _warn_vertex_coord_label_sizing(canvas)
         border_left, border_bottom, border_right, border_top = (
-            effective_border_for_export(canvas)
+            _effective_border_for_export(canvas)
         )
     else:
         border_left = 0

@@ -1060,6 +1060,125 @@ def detokenize(text: str) -> str:
     return "".join(result_parts)
 
 
+def detokenize_literal_dollars(text: str) -> str:
+    """Escape text for TikZ and keep every ``$`` as a dollar sign.
+
+    Examples:
+        >>> detokenize_literal_dollars("price $5")
+        'price \\\\$5'
+    """
+    marked = text.replace("$", "\x00")
+    return detokenize(marked).replace("\x00", r"\$")
+
+
+def tag_math_pieces(text: str) -> list[tuple[str, str]]:
+    """Split tag text into text and math pieces.
+
+    A ``$...$`` pair is math. A ``$`` with no closing ``$`` stays in the
+    text, so a price such as ``$5`` is ordinary text.
+
+    Examples:
+        >>> tag_math_pieces("see $x^2$")
+        [('text', 'see '), ('math', 'x^2')]
+        >>> tag_math_pieces("price $5")
+        [('text', 'price $5')]
+        >>> tag_math_pieces("$x^2$")
+        [('math', 'x^2')]
+    """
+    pieces: list[tuple[str, str]] = []
+    index = 0
+    length = len(text)
+    while index < length:
+        opener = text.find("$", index)
+        if opener < 0:
+            pieces.append(("text", text[index:]))
+            break
+        closer = text.find("$", opener + 1)
+        if closer < 0:
+            pieces.append(("text", text[index:]))
+            break
+        if opener > index:
+            pieces.append(("text", text[index:opener]))
+        pieces.append(("math", text[opener + 1 : closer]))
+        index = closer + 1
+    return pieces
+
+
+def tag_pure_formula(text: str) -> str | None:
+    """Return the body of a tag that is only one ``$...$`` formula.
+
+    Examples:
+        >>> tag_pure_formula("$x^2$")
+        'x^2'
+        >>> tag_pure_formula("see $x^2$") is None
+        True
+        >>> tag_pure_formula("$5") is None
+        True
+    """
+    pieces = tag_math_pieces(text)
+    if len(pieces) == 1 and pieces[0][0] == "math":
+        return pieces[0][1]
+    return None
+
+
+def tag_has_mixed_math(text: str) -> bool:
+    """Return True when text and a ``$...$`` formula are both present.
+
+    Examples:
+        >>> tag_has_mixed_math("see $x^2$")
+        True
+        >>> tag_has_mixed_math("$x^2$")
+        False
+        >>> tag_has_mixed_math("price $5")
+        False
+    """
+    pieces = tag_math_pieces(text)
+    has_math = any(kind == "math" and value for kind, value in pieces)
+    has_text = any(kind == "text" and value for kind, value in pieces)
+    return has_math and has_text
+
+
+def _tikz_text_command(value: str) -> str:
+    """Wrap plain tag text for a TikZ math formula."""
+    return r"\text{" + detokenize(value) + "}"
+
+
+def tag_tikz_mixed_text(text: str) -> str | None:
+    """Return TikZ node text for mixed text and math, or None.
+
+    Plain pieces are wrapped in ``\\text``. Each input line stays outside
+    the math, joined by ``\\\\`` when there is more than one line.
+
+    Examples:
+        >>> tag_tikz_mixed_text("see $x^2$")
+        '$\\\\text{see }x^2$'
+        >>> tag_tikz_mixed_text("$x^2$") is None
+        True
+        >>> tag_tikz_mixed_text("price $5") is None
+        True
+    """
+    if not tag_has_mixed_math(text):
+        return None
+    rendered: list[str] = []
+    for line in text.split("\n"):
+        pieces = tag_math_pieces(line)
+        if any(kind == "math" and value for kind, value in pieces):
+            formula: list[str] = []
+            for kind, value in pieces:
+                if not value:
+                    continue
+                if kind == "math":
+                    formula.append(value)
+                else:
+                    formula.append(_tikz_text_command(value))
+            rendered.append("$" + "".join(formula) + "$")
+        else:
+            rendered.append(detokenize_literal_dollars(line))
+    if len(rendered) == 1:
+        return rendered[0]
+    return r"\\".join(rendered)
+
+
 def get_text_dimensions(
     text: str, font_path: str, font_size: int
 ) -> tuple[int, int]:

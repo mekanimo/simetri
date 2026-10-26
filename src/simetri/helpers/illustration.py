@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from copy import copy
 from dataclasses import dataclass
-from math import pi
+from math import ceil, pi
 from typing import Any
 
 import numpy as np
@@ -483,6 +483,166 @@ class TagFrame:
         self.subtype = Types.FRAME
 
 
+def tag_line_gap(font_size: float) -> int:
+    """Return the distance between text baselines.
+
+    This is ``ceil(font_size * 1.2)``, the gap TikZ uses for a numeric
+    ``\\fontsize``.
+
+    Examples:
+        >>> tag_line_gap(10)
+        12
+    """
+    return ceil(float(font_size) * 1.2)
+
+
+def wrap_tag_lines(
+    text: str,
+    text_width: float | None,
+    measure_width: Callable[[str], float],
+) -> list[str]:
+    """Split ``text`` into lines.
+
+    A newline is a hard break. When ``text_width`` is set, each of those
+    lines wraps on spaces. A word longer than ``text_width`` stays on
+    one line. A paragraph that already fits is returned unchanged.
+
+    Examples:
+        >>> def measure(sample: str) -> float:
+        ...     return float(len(sample))
+        >>> wrap_tag_lines("one two", 3, measure)
+        ['one', 'two']
+        >>> wrap_tag_lines("one\\ntwo", None, measure)
+        ['one', 'two']
+        >>> wrap_tag_lines("abcd", 2, measure)
+        ['abcd']
+    """
+    paragraphs = text.split("\n")
+    if text_width is None:
+        return paragraphs
+    lines: list[str] = []
+    for paragraph in paragraphs:
+        lines.extend(
+            _wrap_tag_paragraph(paragraph, text_width, measure_width)
+        )
+    return lines
+
+
+def _wrap_tag_paragraph(
+    paragraph: str,
+    text_width: float,
+    measure_width: Callable[[str], float],
+) -> list[str]:
+    """Wrap one paragraph. ``measure_width`` returns the width of a string."""
+    if measure_width(paragraph) <= text_width:
+        return [paragraph]
+    words = paragraph.split(" ")
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        if current == "":
+            current = word
+            continue
+        trial = f"{current} {word}"
+        if measure_width(trial) <= text_width:
+            current = trial
+        else:
+            lines.append(current)
+            current = word
+    if current != "" or not lines:
+        lines.append(current)
+    return lines
+
+
+def _ink_width(font: ImageFont.FreeTypeFont, text: str) -> float:
+    """Return the ink width of ``text``. An empty string has width 0."""
+    if text == "":
+        return 0.0
+    left, _top, right, _bottom = font.getbbox(text)
+    return float(right - left)
+
+
+def _ink_height(font: ImageFont.FreeTypeFont, text: str) -> float:
+    """Return the ink height of ``text``. An empty line uses a space."""
+    sample = text if text else " "
+    _left, top, _right, bottom = font.getbbox(sample)
+    return float(bottom - top)
+
+
+def _load_tag_font(
+    font_family: FontFamily | str | None,
+    font_size: int | float | FontSize | None,
+) -> tuple[ImageFont.FreeTypeFont, float]:
+    """Return the Pillow font and numeric size used to measure a tag."""
+    if font_size is None:
+        numeric_size = runtime_defaults["font_size"]
+    elif type(font_size) in [int, float]:
+        numeric_size = font_size
+    elif font_size in FontSize:
+        numeric_size = convert_latex_font_size(font_size)
+    else:
+        raise ValueError("Invalid font size.")
+    if isinstance(font_family, FontFamily):
+        if font_family == FontFamily.MONOSPACE:
+            font_name = runtime_defaults["mono_font"]
+        elif font_family == FontFamily.SANSSERIF:
+            font_name = runtime_defaults["sans_font"]
+        else:
+            font_name = runtime_defaults["main_font"]
+    else:
+        font_name = font_family
+
+    if not isinstance(font_name, str) or not font_name:
+        raise ValueError(f"Invalid font family for Tag: {font_name!r}")
+
+    normalized_font_name = font_name.strip().lower()
+    font_resource_map = {
+        "courier new": "cour.ttf",
+        "times new roman": "times.ttf",
+        "arial": "arial.ttf",
+    }
+    if normalized_font_name in font_resource_map:
+        font_resource = font_resource_map[normalized_font_name]
+    elif normalized_font_name.endswith(".ttf"):
+        font_resource = font_name
+    else:
+        font_resource = f"{font_name}.ttf"
+
+    font = ImageFont.truetype(font_resource, int(numeric_size))
+    return font, float(numeric_size)
+
+
+def tag_text_layout(
+    text: str,
+    font_family: FontFamily | str | None,
+    font_size: int | float | FontSize | None,
+    text_width: float | None,
+) -> tuple[list[str], float, float, float]:
+    """Return lines, ink width, block height, and the numeric font size.
+
+    One line uses that line's ink box. Further lines add
+    ``tag_line_gap(font_size)`` between baselines.
+    """
+    font, numeric_size = _load_tag_font(font_family, font_size)
+
+    def measure_width(sample: str) -> float:
+        return _ink_width(font, sample)
+
+    lines = wrap_tag_lines(text, text_width, measure_width)
+    if len(lines) == 1:
+        left, top, right, bottom = font.getbbox(lines[0])
+        return (
+            lines,
+            float(right - left),
+            float(bottom - top),
+            numeric_size,
+        )
+    widths = [_ink_width(font, line) for line in lines]
+    heights = [_ink_height(font, line) for line in lines]
+    height = max(heights) + (len(lines) - 1) * tag_line_gap(numeric_size)
+    return lines, max(widths), height, numeric_size
+
+
 class Tag(Base):
     """A Tag object is very similar to TikZ library's nodes. It is a text with a frame.
 
@@ -491,7 +651,9 @@ class Tag(Base):
     See ``TAG_STYLE_ATTRS`` / ``tag_style_map`` for the full set.
 
     Args:
-        text (str): The text of the tag.
+        text (str): The text of the tag. A newline starts a new line.
+            When ``text_width`` is set, each of those lines wraps to that
+            width. A word longer than ``text_width`` stays on one line.
         pos (PointType): The position of the tag.
         font_family (str, optional): The font family. Defaults to None.
         font_size (int, optional): The font size. Defaults to None.
@@ -888,50 +1050,30 @@ class Tag(Base):
     def text_bounds(self) -> tuple[float, float, float, float]:
         """Returns the bounds of the text.
 
+        A newline starts a new line. ``text_width`` wraps each line.
+        Several lines are taller than one line. One line keeps the
+        single-line ink box.
+
         Returns:
             tuple: The bounds of the text (xmin, ymin, xmax, ymax).
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> single = sg.Tag("one", (0, 0))
+            >>> broken = sg.Tag("one\\ntwo", (0, 0))
+            >>> broken.text_bounds()[3] > single.text_bounds()[3]
+            True
+            >>> wrapped = sg.Tag("one two", (0, 0), text_width=1)
+            >>> wrapped.text_bounds()[3] > single.text_bounds()[3]
+            True
         """
-        if self.font_size is None:
-            font_size = runtime_defaults["font_size"]
-        elif type(self.font_size) in [int, float]:
-            font_size = self.font_size
-        elif self.font_size in FontSize:
-            font_size = convert_latex_font_size(self.font_size)
-        else:
-            raise ValueError("Invalid font size.")
-        if isinstance(self.font_family, FontFamily):
-            if self.font_family == FontFamily.MONOSPACE:
-                font_name = runtime_defaults["mono_font"]
-            elif self.font_family == FontFamily.SANSSERIF:
-                font_name = runtime_defaults["sans_font"]
-            else:
-                font_name = runtime_defaults["main_font"]
-        else:
-            font_name = self.font_family
-
-        if not isinstance(font_name, str) or not font_name:
-            raise ValueError(f"Invalid font family for Tag: {font_name!r}")
-
-        normalized_font_name = font_name.strip().lower()
-        font_resource_map = {
-            "courier new": "cour.ttf",
-            "times new roman": "times.ttf",
-            "arial": "arial.ttf",
-        }
-        if normalized_font_name in font_resource_map:
-            font_resource = font_resource_map[normalized_font_name]
-        elif normalized_font_name.endswith(".ttf"):
-            font_resource = font_name
-        else:
-            font_resource = f"{font_name}.ttf"
-
-        font = ImageFont.truetype(font_resource, int(font_size))
-        xmin, ymin, xmax, ymax = font.getbbox(self.text)
-        width = xmax - xmin
-        height = ymax - ymin
-        xmin, ymin, xmax, ymax = 0, 0, width, height
-
-        return xmin, ymin, xmax, ymax
+        _lines, width, height, _font_size = tag_text_layout(
+            self.text,
+            self.font_family,
+            self.font_size,
+            self.text_width,
+        )
+        return 0, 0, width, height
 
     @property
     def final_coords(self) -> NDArray[np.float64]:

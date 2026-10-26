@@ -342,10 +342,10 @@ def get_tex_code(
     pages = canvas.pages
     has_sketches = any(page.sketches for page in pages)
 
-    from ..canvas import warn_vertex_coord_label_sizing
+    from ..canvas import _warn_vertex_coord_label_sizing
 
     if canvas.page_size is None:
-        warn_vertex_coord_label_sizing(canvas)
+        _warn_vertex_coord_label_sizing(canvas)
 
     if not has_sketches:
         issue_warning(

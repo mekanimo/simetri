@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from simetri.base.all_enums import MarkerType
-from simetri.base.common import PointType, VecType
+from simetri.base.common import PointType
 from simetri.config.settings import runtime_defaults
 from simetri.geom.vectors import Vector
 from simetri.group.batch import Group
@@ -290,6 +290,9 @@ def is_vector_marker_shape(
         True
         >>> is_vector_marker_shape(shape, {})
         False
+        >>> marked = sg.Shape([(0, 0), (40, 0)], marker_type=sg.MarkerType.VECTOR)
+        >>> is_vector_marker_shape(marked, {})
+        True
         >>> is_vector_marker_shape(sg.Vector(40, 0), {})
         False
     """
@@ -297,13 +300,8 @@ def is_vector_marker_shape(
         return False
     if "marker_type" in draw_kwargs:
         marker_type = draw_kwargs["marker_type"]
-    elif (
-        "marker_type" in item.__dict__
-        and item.__dict__["marker_type"] is not None
-    ):
-        marker_type = item.__dict__["marker_type"]
     else:
-        return False
+        marker_type = item.marker_type
     return (
         marker_type == MarkerType.VECTOR
         or marker_type == MarkerType.VECTOR.value
@@ -313,24 +311,16 @@ def is_vector_marker_shape(
 def draw_vector_marker_shape(
     canvas: Any,
     shape: Shape,
-    *,
-    pos: PointType | None,
-    angle: float,
-    rotocenter: PointType,
-    scale: VecType | float,
-    about: PointType,
     draw_kwargs: Mapping[str, Any],
 ) -> None:
     """Draw a shape's edges as vectors, and its body when that is requested.
 
+    The canvas sketch matrix is already set. ``pos``, ``angle``, and
+    ``scale`` are not applied again.
+
     Args:
         canvas: Canvas that receives the sketches (mutated).
         shape: Shape whose edges are drawn as vectors.
-        pos: Midpoint destination. Applied to the body and to each edge.
-        angle: Rotation applied to each draw.
-        rotocenter: Center of that rotation.
-        scale: Scale applied to each draw.
-        about: Center of that scale.
         draw_kwargs: Style and placement keyword arguments.
 
     Examples:
@@ -341,27 +331,23 @@ def draw_vector_marker_shape(
         >>> draw_vector_marker_shape(
         ...     canvas,
         ...     shape,
-        ...     pos=None,
-        ...     angle=0,
-        ...     rotocenter=(0, 0),
-        ...     scale=(1, 1),
-        ...     about=(0, 0),
-        ...     draw_kwargs={"marker_type": sg.MarkerType.VECTOR},
+        ...     {"marker_type": sg.MarkerType.VECTOR},
         ... )
-        >>> canvas.active_page.sketches[-1].vertices
+        >>> canvas.active_page.sketches[-2].vertices
         [(0.0, 0.0), (40.0, 0.0)]
     """
+    from simetri.render.draw import draw as draw_item
+    from simetri.render.draw import draw_vector
+
     body_kwargs = dict(draw_kwargs)
-    del body_kwargs["marker_type"]
+    body_kwargs["marker_type"] = None
     if "draw_markers" in body_kwargs:
         del body_kwargs["draw_markers"]
     body_kwargs["stroke"] = False
     if "fill" in body_kwargs:
         wants_fill = body_kwargs["fill"]
-    elif "fill" in shape.__dict__ and shape.__dict__["fill"] is not None:
-        wants_fill = shape.__dict__["fill"]
     else:
-        wants_fill = runtime_defaults["fill"]
+        wants_fill = shape.fill
     if "indices" in body_kwargs:
         wants_indices = bool(body_kwargs["indices"])
     elif "indices" in shape.__dict__:
@@ -375,16 +361,7 @@ def draw_vector_marker_shape(
     else:
         wants_coords = False
     if wants_fill or wants_indices or wants_coords:
-        canvas.draw(
-            shape,
-            pos=pos,
-            angle=angle,
-            rotocenter=rotocenter,
-            scale=scale,
-            about=about,
-            show=False,
-            **body_kwargs,
-        )
+        draw_item(canvas, shape, **body_kwargs)
     vector_kwargs = dict(draw_kwargs)
     for key in (
         "draw_markers",
@@ -396,25 +373,14 @@ def draw_vector_marker_shape(
     ):
         if key in vector_kwargs:
             del vector_kwargs[key]
-    pos_dx = 0.0
-    pos_dy = 0.0
-    if pos is not None:
-        mid_x, mid_y = shape.midpoint[:2]
-        dest_x, dest_y = pos[:2]
-        pos_dx = dest_x - mid_x
-        pos_dy = dest_y - mid_y
     for edge in shape.edges:
         start_x, start_y = edge[0][:2]
         end_x, end_y = edge[1][:2]
-        start = (start_x + pos_dx, start_y + pos_dy)
-        end = (end_x + pos_dx, end_y + pos_dy)
-        canvas.draw(
+        start = (start_x, start_y)
+        end = (end_x, end_y)
+        draw_vector(
+            canvas,
             Vector(start, end),
             vec_start=start,
-            angle=angle,
-            rotocenter=rotocenter,
-            scale=scale,
-            about=about,
-            show=False,
             **vector_kwargs,
         )

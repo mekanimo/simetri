@@ -25,11 +25,13 @@ from ...base.all_enums import (
     MarkerType,
     SvgLoc,
     Types,
+    WarningType,
 )
 from ...base.common import get_unique_id
 from ...coloring.colors import Color, check_color
-from ...config.settings import runtime_defaults
+from ...config.settings import issue_warning, runtime_defaults
 from ...geom.geom_utils import close_points_square
+from ...helpers.illustration import tag_line_gap, tag_text_layout
 from ...helpers.labels import (
     label_font_family_svg,
     prepare_shape_index_labels,
@@ -39,6 +41,7 @@ from ...helpers.labels import (
     sketch_label_font_size_pt,
     svg_label_paint_attrs,
 )
+from ...helpers.utilities import tag_has_mixed_math
 from .svg_colors import color_to_matplotlib, color_to_svg
 from .svg_common import _clip_line_to_rect, get_clip_mask_attrs
 from .svg_sketch_utils import (
@@ -546,7 +549,26 @@ def draw_tag_sketch(sketch: TagSketch) -> str:
     if not isinstance(text, str):
         text = str(text)
     text = text.replace(r"\_", "_")
-    escaped_text = html.escape(html.unescape(text), quote=False)
+    if tag_has_mixed_math(text):
+        issue_warning(
+            "Tag mixes text and LaTeX. SVG draws the characters, "
+            "including the dollar signs.",
+            WarningType.output.tag_math,
+        )
+    requested_text_width = sketch_attrib(sketch, "text_width")
+    if font_family is None:
+        font_family = runtime_defaults["font_family"]
+    if font_size is None:
+        font_size = runtime_defaults["font_size"]
+    lines, natural_width, block_height, numeric_size = tag_text_layout(
+        text,
+        font_family,
+        font_size,
+        requested_text_width,
+    )
+    escaped_lines = [
+        html.escape(html.unescape(line), quote=False) for line in lines
+    ]
 
     # Text styling
     font_weight = "bold" if sketch_attrib(sketch, "bold") else "normal"
@@ -587,8 +609,12 @@ def draw_tag_sketch(sketch: TagSketch) -> str:
         minimum_width = sketch_attrib(sketch, "minimum_width")
 
         # Get accurate text dimensions using PIL
-        text_width, text_height = get_text_size(text, font_family, font_size)
-        requested_text_width = sketch_attrib(sketch, "text_width")
+        if len(lines) == 1:
+            text_width, text_height = get_text_size(
+                text, font_family, font_size
+            )
+        else:
+            text_width, text_height = natural_width, block_height
         if requested_text_width is not None:
             text_width = requested_text_width
 
@@ -644,11 +670,6 @@ def draw_tag_sketch(sketch: TagSketch) -> str:
     if sketch_attrib(sketch, "small_caps"):
         text_decoration = 'font-variant="small-caps" '
 
-    text_width_attr = ""
-    text_width = sketch_attrib(sketch, "text_width")
-    if text_width:
-        text_width_attr = f'textLength="{text_width}" '
-
     # Wrap text in a transform group to flip y-axis (prevents upside-down text)
     angle = sketch_attrib(sketch, "angle")
     if angle:
@@ -658,7 +679,7 @@ def draw_tag_sketch(sketch: TagSketch) -> str:
     elements.append(
         f'<g transform="translate({x} {y}){rotate_attr} scale(1,-1)">'
     )
-    elements.append(
+    text_open = (
         f'<text x="0" y="0" '
         f'font-family="{font_family}" '
         f'font-size="{font_size}" '
@@ -667,10 +688,20 @@ def draw_tag_sketch(sketch: TagSketch) -> str:
         f"{text_decoration}"
         f'fill="{font_color}" '
         f'text-anchor="{text_anchor}" '
-        f'dominant-baseline="middle" '
-        f"{text_width_attr}"
-        f">{escaped_text}</text>"
+        f'dominant-baseline="middle">'
     )
+    if len(escaped_lines) == 1:
+        elements.append(f"{text_open}{escaped_lines[0]}</text>")
+    else:
+        elements.append(text_open)
+        gap = tag_line_gap(numeric_size)
+        last = len(escaped_lines) - 1
+        for index, line in enumerate(escaped_lines):
+            local_y = (last / 2 - index) * gap
+            elements.append(
+                f'<tspan x="0" y="{local_y}">{line}</tspan>'
+            )
+        elements.append("</text>")
     elements.append("</g>")
 
     content = "\n".join(elements)
@@ -772,11 +803,6 @@ def draw_helplines_sketch(sketch: HelpLinesSketch) -> str:
     Examples:
         >>> draw_helplines_sketch  # doctest: +SKIP
     """
-    x, y = sketch_attrib(sketch, "pos")[:2]
-    width = sketch_attrib(sketch, "width")
-    height = sketch_attrib(sketch, "height")
-    spacing = sketch_attrib(sketch, "spacing")
-    cs_size = sketch_attrib(sketch, "cs_size")
     grid_style = SimpleNamespace(**sketch_attrib(sketch, "grid_style"))
     x_axis_style = SimpleNamespace(**sketch_attrib(sketch, "x_axis_style"))
     y_axis_style = SimpleNamespace(**sketch_attrib(sketch, "y_axis_style"))
@@ -785,33 +811,27 @@ def draw_helplines_sketch(sketch: HelpLinesSketch) -> str:
 
     elements = []
 
-    # Grid lines (horizontal + vertical)
-    n_h = int(height / spacing)
-    n_v = int(width / spacing)
     grid_style_text = get_line_style_options(grid_style)
-
-    for i in range(n_h + 1):
-        yi = y + i * spacing
+    for start, end in sketch_attrib(sketch, "lines"):
+        x1, y1 = start
+        x2, y2 = end
         elements.append(
-            f'<line x1="{x}" y1="{yi}" x2="{x + width}" y2="{yi}" style="{grid_style_text}" />'
-        )
-
-    for i in range(n_v + 1):
-        xi = x + i * spacing
-        elements.append(
-            f'<line x1="{xi}" y1="{y}" x2="{xi}" y2="{y + height}" style="{grid_style_text}" />'
+            f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" style="{grid_style_text}" />'
         )
 
     # Coordinate system axes + origin marker
-    if cs_size and cs_size > 0:
+    x_axis = sketch_attrib(sketch, "x_axis")
+    y_axis = sketch_attrib(sketch, "y_axis")
+    if x_axis is not None and y_axis is not None:
         x_axis_style_text = get_line_style_options(x_axis_style)
         y_axis_style_text = get_line_style_options(y_axis_style)
+        origin = sketch_attrib(sketch, "origin")
 
         elements.append(
-            f'<line x1="0" y1="0" x2="{cs_size}" y2="0" style="{x_axis_style_text}" />'
+            f'<line x1="{x_axis[0][0]}" y1="{x_axis[0][1]}" x2="{x_axis[1][0]}" y2="{x_axis[1][1]}" style="{x_axis_style_text}" />'
         )
         elements.append(
-            f'<line x1="0" y1="0" x2="0" y2="{cs_size}" style="{y_axis_style_text}" />'
+            f'<line x1="{y_axis[0][0]}" y1="{y_axis[0][1]}" x2="{y_axis[1][0]}" y2="{y_axis[1][1]}" style="{y_axis_style_text}" />'
         )
 
         origin_fill_color = color_to_svg(
@@ -823,7 +843,7 @@ def draw_helplines_sketch(sketch: HelpLinesSketch) -> str:
             "line_color",
         )
         elements.append(
-            f'<circle cx="0" cy="0" r="{origin_size}" '
+            f'<circle cx="{origin[0]}" cy="{origin[1]}" r="{origin_size}" '
             f'fill="{origin_fill_color}" stroke="{origin_line_color}" />'
         )
 
@@ -1089,15 +1109,15 @@ def draw_latex_sketch(sketch: LatexSketch) -> str:
         anchor: Anchor, W: float, H: float
     ) -> tuple[float, float]:
         match anchor:
-            case Anchor.CENTER:
+            case Anchor.CENTER | Anchor.MIDPOINT:
                 res = (W / 2, H / 2)
-            case Anchor.NORTH:
+            case Anchor.NORTH | Anchor.TOP:
                 res = (W / 2, H)
-            case Anchor.SOUTH:
+            case Anchor.SOUTH | Anchor.BOTTOM:
                 res = (W / 2, 0)
-            case Anchor.EAST:
+            case Anchor.EAST | Anchor.RIGHT:
                 res = (W, H / 2)
-            case Anchor.WEST:
+            case Anchor.WEST | Anchor.LEFT:
                 res = (0, H / 2)
             case Anchor.NORTHEAST:
                 res = (W, H)
@@ -1107,6 +1127,8 @@ def draw_latex_sketch(sketch: LatexSketch) -> str:
                 res = (W, 0)
             case Anchor.SOUTHWEST:
                 res = (0, 0)
+            case _:
+                raise ValueError(f"Unsupported latex anchor: {anchor!r}")
 
         return res
 

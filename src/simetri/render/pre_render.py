@@ -41,6 +41,7 @@ from simetri.base.all_enums import (
 )
 from simetri.base.common import d_id_obj
 from simetri.coloring.colors import black, white
+from simetri.helpers.utilities import tag_tikz_mixed_text
 from simetri.render.sketch import ScopeGroup
 
 if TYPE_CHECKING:
@@ -294,6 +295,14 @@ def collect_tikz_preamble_requirements_for_sketch(
         )
     ) and "fontspec" not in tikz_packages:
         tikz_packages.append("fontspec")
+    if (
+        sketch.subtype == Types.TAG_SKETCH
+        and "text" in sketch_dict
+        and isinstance(sketch.text, str)
+        and tag_tikz_mixed_text(sketch.text) is not None
+        and "amsmath" not in tikz_packages
+    ):
+        tikz_packages.append("amsmath")
     if "back_style" in sketch_dict:
         if (
             sketch.back_style == BackStyle.COLOR

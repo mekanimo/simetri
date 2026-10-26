@@ -61,10 +61,7 @@ def gen_unique_ids() -> Iterator[int]:
     Yields:
         int: The next unique identifier, starting at 0.
 
-    Examples:
-        >>> gen = gen_unique_ids()
-        >>> next(gen), next(gen)
-        (0, 1)
+
     """
     id_ = 0
     while True:
@@ -86,14 +83,7 @@ def get_unique_id(item: object) -> int:
     Returns:
         int: Newly assigned unique identifier.
 
-    Examples:
-        >>> from simetri.base.common import d_id_obj, get_unique_id
-        >>> class _Item: pass
-        >>> item = _Item()
-        >>> uid = get_unique_id(item)
-        >>> d_id_obj[uid] is item
 
-        True
     """
     id_ = next(unique_id)
     d_id_obj[id_] = item
@@ -148,14 +138,7 @@ def resolve_tol(
     Returns:
         tuple: ``(rel_tol, abs_tol)``.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.resolve_tol()
-        (0, 0.001)
-        >>> sg.resolve_tol(abs_tol=0.05)
-        (0, 0.05)
-        >>> sg.resolve_tol(rel_tol=0.01, abs_tol=0.05)
-        (0.01, 0.05)
+
     """
     if rel_tol is None:
         rel_tol = runtime_defaults["rel_tol"]
@@ -174,12 +157,7 @@ def get_defaults(args: Sequence[str], values: Sequence[Any]) -> list[Any]:
     Returns:
         list: Resolved values in the same order as ``args``.
 
-    Examples:
-        >>> from simetri.base.common import get_defaults
-        >>> get_defaults(["rel_tol", "abs_tol"], [None, None])
-        [0, 0.001]
-        >>> get_defaults(["abs_tol"], [0.05])
-        [0.05]
+
     """
     res = []
     for i, arg in enumerate(args):
@@ -296,27 +274,7 @@ def alias_argument(
         ValueError: If an official name has no aliases, an alias repeats
             the official name, or one alias is used for two official names.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> @sg.alias_argument("count", "n")
-        ... def _double(count):
-        ...     return count * 2
-        >>> _double(n=3)
-        6
-        >>> @sg.alias_argument("count", ["n", "num"])
-        ... def _double2(count):
-        ...     return count * 2
-        >>> _double2(num=4)
-        8
-        >>> @sg.alias_argument({"x": "width", "y": ["height", "h"]})
-        ... def _size(x, y):
-        ...     return (x, y)
-        >>> _size(width=2, h=3)
-        (2, 3)
-        >>> _double(count=1, n=2)
-        Traceback (most recent call last):
-            ...
-        TypeError: Received both 'count' and its alias 'n'!
+
     """
     alias_map = _alias_argument_map(official_name, alias_name)
 

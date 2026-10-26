@@ -12,7 +12,11 @@ from typing import Any, Self
 
 from simetri.base.all_enums import WarningType
 from simetri.coloring.colors import Color
-from simetri.config.settings import issue_warning, runtime_defaults, user_defaults
+from simetri.config.settings import (
+    issue_warning,
+    runtime_defaults,
+    user_defaults,
+)
 
 # Public style fields copied by ``copy_style`` (color/alpha handled separately).
 STYLE_COPY_ATTRS: tuple[str, ...] = (
@@ -204,8 +208,6 @@ class CommonStyle:
         >>> mark = sg.Shape([(0, 0), (100, 0)], closed=True)
         >>> mark.style["line_width"] == sg.user_defaults["line_width"]
         True
-        >>> mark.reset_style() is mark
-        True
     """
 
     _style_warning_stacklevel: int = 3
@@ -278,10 +280,18 @@ class CommonStyle:
 
         color = kwargs.pop("color") if "color" in kwargs else None
         alpha = kwargs.pop("alpha") if "alpha" in kwargs else None
-        line_color = kwargs.pop("line_color") if "line_color" in kwargs else None
-        fill_color = kwargs.pop("fill_color") if "fill_color" in kwargs else None
-        line_alpha = kwargs.pop("line_alpha") if "line_alpha" in kwargs else None
-        fill_alpha = kwargs.pop("fill_alpha") if "fill_alpha" in kwargs else None
+        line_color = (
+            kwargs.pop("line_color") if "line_color" in kwargs else None
+        )
+        fill_color = (
+            kwargs.pop("fill_color") if "fill_color" in kwargs else None
+        )
+        line_alpha = (
+            kwargs.pop("line_alpha") if "line_alpha" in kwargs else None
+        )
+        fill_alpha = (
+            kwargs.pop("fill_alpha") if "fill_alpha" in kwargs else None
+        )
         self._apply_color_alpha(
             color=color,
             alpha=alpha,

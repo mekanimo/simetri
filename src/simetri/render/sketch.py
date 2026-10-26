@@ -36,7 +36,8 @@ from ..config.settings import runtime_defaults
 from ..geom.bbox import bounding_box
 from ..geom.homogenize import homogenize
 from ..geom.matrices import identity_matrix
-from ..helpers.utilities import decompose_transformations, round_symmetric
+from ..geom.segments.line_utils import clip_line_to_rect
+from ..helpers.utilities import decompose_transformations
 from ..images.image import Image
 from ..patterns.pattern import Pattern
 
@@ -801,7 +802,7 @@ class ScopeGroup:
     """
 
     label: str
-    subtype: Types.SCOPE_GROUP
+    subtype: Types
     sketch_list: list
     style_data: dict
 
@@ -820,7 +821,7 @@ class ClippedSketch:
         'ClippedSketch'
     """
 
-    sketches: list[Types.SKETCH]
+    sketches: list[Sketch]
     clipper: ShapeSketch
     xform_matrix: NDArray = None
 
@@ -862,7 +863,7 @@ class MaskedSketch:
         'MASKED_SKETCH'
     """
 
-    sketches: list[Types.SKETCH]
+    sketches: list[Sketch]
     mask: Any
     xform_matrix: NDArray = None
 
@@ -894,7 +895,7 @@ class FilteredSketch:
         >>> FilteredSketch(sketches=[[]], filter_s=[])  # doctest: +SKIP
     """
 
-    sketches: list[Types.SKETCH]
+    sketches: list[Sketch]
     filter_s: list  # list of filters or a filter
 
     def __post_init__(self) -> None:
@@ -924,7 +925,7 @@ class PathSketch:
     """PathSketch is a dataclass for creating a path sketch object.
 
     Attributes:
-        sketches (list[Types.SKETCH]): The list of sketches.
+        sketches (list[Sketch]): The list of sketches.
         xform_matrix (ndarray, optional): The transformation matrix. Defaults to None.
     Examples:
         >>> from simetri.render.sketch import PathSketch
@@ -934,7 +935,7 @@ class PathSketch:
 
     """
 
-    sketches: list[Types.SKETCH]
+    sketches: list[Sketch]
     xform_matrix: NDArray = None
 
     def __post_init__(self) -> None:
@@ -1262,6 +1263,73 @@ class RectSketch:
         self.closed = True
 
 
+def _tick_values(low: float, high: float, step: float) -> list[float]:
+    """Return grid coordinates from ``low`` through ``high`` at ``step``."""
+    value = float(np.floor(low / step) * step)
+    ticks = []
+    while value <= high + 1e-9:
+        ticks.append(value)
+        value += step
+    return ticks
+
+
+def _frame_point(
+    point: tuple[float, float], matrix: NDArray
+) -> tuple[float, float]:
+    """Map a point through a row-vector affine matrix."""
+    mapped = np.array([point[0], point[1], 1.0], dtype=float) @ matrix
+    return (float(mapped[0]), float(mapped[1]))
+
+
+def _frame_direction(
+    direction: tuple[float, float], matrix: NDArray
+) -> tuple[float, float]:
+    """Map a direction through a row-vector affine matrix."""
+    mapped = np.array([direction[0], direction[1], 0.0], dtype=float) @ matrix
+    return (float(mapped[0]), float(mapped[1]))
+
+
+def _clipped_grid_lines(
+    canvas: Canvas, spacing: float, matrix: NDArray
+) -> list[tuple[tuple[float, float], tuple[float, float]]]:
+    """Clip the canvas-frame grid to the canvas background."""
+    x, y, width, height = canvas._background_rect()
+    lower_left = (x, y)
+    upper_right = (x + width, y + height)
+    local = homogenize(
+        [
+            lower_left,
+            (x + width, y),
+            upper_right,
+            (x, y + height),
+        ]
+    ) @ np.linalg.inv(matrix)
+    lines = []
+    for coord in _tick_values(
+        float(local[:, 0].min()), float(local[:, 0].max()), spacing
+    ):
+        segment = clip_line_to_rect(
+            _frame_point((coord, 0.0), matrix),
+            _frame_direction((0.0, 1.0), matrix),
+            lower_left,
+            upper_right,
+        )
+        if segment is not None:
+            lines.append(segment)
+    for coord in _tick_values(
+        float(local[:, 1].min()), float(local[:, 1].max()), spacing
+    ):
+        segment = clip_line_to_rect(
+            _frame_point((0.0, coord), matrix),
+            _frame_direction((1.0, 0.0), matrix),
+            lower_left,
+            upper_right,
+        )
+        if segment is not None:
+            lines.append(segment)
+    return lines
+
+
 @dataclass
 class HelpLinesSketch:
     """Sketch metadata for canvas help/grid lines.
@@ -1297,6 +1365,7 @@ class HelpLinesSketch:
     y_axis_style: dict[str, Any]
     origin_style: dict[str, Any]
     origin_size: float
+    xform_matrix: NDArray | None = None
 
     def __post_init__(self) -> None:
         """Set type metadata for a help-lines sketch."""
@@ -1305,10 +1374,12 @@ class HelpLinesSketch:
         self.id = get_unique_id(self)
 
     def populate(self, canvas: Canvas) -> None:
-        """Compute help-line extents from the canvas content bounding box.
+        """Set the help-line rectangle to the canvas background.
+
+        The background is the items' bounding box plus the canvas border.
 
         Args:
-            canvas: Canvas whose vertices define the help-line region.
+            canvas: Canvas whose items define the background.
 
         Examples:
             >>> import simetri.graphics as sg
@@ -1327,23 +1398,33 @@ class HelpLinesSketch:
             >>> sk.width > 0
             True
         """
-        bbox = bounding_box(canvas._all_vertices)
-        x, y = bbox.southwest
-        width = bbox.width
-        height = bbox.height
         spacing = self.spacing
         if spacing in (None, 0):
             spacing = runtime_defaults["help_lines_spacing"]
             self.spacing = spacing
 
-        d = runtime_defaults["help_lines_margin"]
-        x1 = round_symmetric(x - d, self.spacing)
-        y1 = round_symmetric(y - d, self.spacing)
-        w = round_symmetric(width + 2 * d, self.spacing)
-        h = round_symmetric(height + 2 * d, self.spacing)
-        self.pos = (x1, y1)
-        self.width = w
-        self.height = h
+        x, y, width, height = canvas._background_rect()
+        self.pos = (x, y)
+        self.width = width
+        self.height = height
+        matrix = self.xform_matrix
+        if matrix is None:
+            matrix = identity_matrix()
+        self.lines = _clipped_grid_lines(canvas, self.spacing, matrix)
+        if self.cs_size and self.cs_size > 0:
+            self.x_axis = (
+                _frame_point((0.0, 0.0), matrix),
+                _frame_point((self.cs_size, 0.0), matrix),
+            )
+            self.y_axis = (
+                _frame_point((0.0, 0.0), matrix),
+                _frame_point((0.0, self.cs_size), matrix),
+            )
+            self.origin = _frame_point((0.0, 0.0), matrix)
+        else:
+            self.x_axis = None
+            self.y_axis = None
+            self.origin = None
 
 
 @dataclass
@@ -1361,7 +1442,7 @@ class CompositeSketch:
 
     """
 
-    sketches: list[Types.SKETCH]
+    sketches: list[Sketch]
     xform_matrix: NDArray = None
 
     def __post_init__(self) -> None:

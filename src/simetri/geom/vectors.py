@@ -34,7 +34,7 @@ from numbers import Real
 
 import numpy as np
 
-from ..base.all_enums import WarningType
+from ..base.all_enums import Types, WarningType
 from ..base.common import LineType, PointType, VecType, axis_x, axis_y
 from ..config.settings import issue_warning
 from ..helpers.validation import check_position
@@ -55,7 +55,14 @@ class Vector:
         Vector(0.6, 0.8)
         >>> v
         Vector(60, 80)
-"""
+        >>> v.type is sg.Types.VECTOR
+        True
+        >>> v.subtype is sg.Types.VECTOR
+        True
+    """
+
+    type = Types.VECTOR
+    subtype = Types.VECTOR
 
     def __init__(self, *args: object) -> None:
         """Initialize a vector.
@@ -157,6 +164,25 @@ class Vector:
             0.0
 """
         return self.data[2] if len(self.data) > 2 else 0.0
+
+    @property
+    def midpoint(self) -> PointType:
+        """Center of the arrow drawn for this vector with its tail at the origin.
+
+        ``canvas.draw(..., pos=)`` places this point on ``pos``. ``vec_start``
+        and ``vec_end`` are draw arguments, so they are not part of this point.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> vector = sg.Vector(40, 0)
+            >>> arrow = sg.vec_arrow(vector, start=(0, 0))
+            >>> tuple(vector.midpoint[:2]) == tuple(arrow.midpoint[:2])
+            True
+        """
+        from ..helpers.arrows import vec_arrow
+
+        arrow = vec_arrow(self, start=(0.0, 0.0))
+        return arrow.midpoint
 
     def __repr__(self) -> str:
         return f"Vector({', '.join(str(component) for component in self.data)})"

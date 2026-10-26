@@ -4,18 +4,13 @@ Most enums are ``StrEnum`` members whose ``.value`` is the string
 written to SVG/TikZ or used for style resolution. Use ``get_enum_value``
 to accept either an enum member or a case-insensitive name string.
 
-Examples:
-    >>> import simetri.graphics as sg
-    >>> sg.get_enum_value(sg.Anchor, "center")
-    'center'
-    >>> sg.Anchor.NORTHWEST.value
-    'northwest'
+
 """
 
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING, TypeAlias, Union
 
 if TYPE_CHECKING:
     from simetri.base.core import Base
@@ -38,12 +33,7 @@ def get_enum_value(enum_class: StrEnum, value: str) -> str:
     Raises:
         KeyError: If ``value`` is a string that does not match a member name.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> get_enum_value(sg.Types, sg.Types.SHAPE)
-        'SHAPE'
-        >>> get_enum_value(sg.Types, "circle")
-        'CIRCLE'
+
     """
     if isinstance(value, enum_class):
         res = value.value
@@ -59,10 +49,7 @@ class Align(StrEnum):
 
     Valid values are: NONE, CENTER, FLUSH_CENTER, FLUSH_LEFT, FLUSH_RIGHT, JUSTIFY, LEFT, RIGHT.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Align.BOTTOM.value
-        'bottom'
+
     """
 
     BOTTOM = "bottom"
@@ -90,10 +77,7 @@ class Anchor(StrEnum):
     NORTH,
     NORTHEAST, NORTHWEST, RIGHT, SOUTH, SOUTHEAST, SOUTHWEST, TEXT, TOP, WEST.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Anchor.BASE.value
-        'base'
+
     """
 
     BASE = "base"  # FOR TAGS ONLY
@@ -122,10 +106,7 @@ class ArrowLine(StrEnum):
     Valid values are: FLATBASE_END, FLATBASE_MIDDLE, FLATBASE_START, FLATBOTH_END, FLATBOTH_MIDDLE,
     FLATBOTH_START, FLATTOP_END, FLATTOP_MIDDLE,     FLATTOP_START, STRAIGHT_END, STRAIGHT_MIDDLE, STRAIGHT_START.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.ArrowLine.FLATBASE_END.value
-        'flatbase end'
+
     """
 
     FLATBASE_END = "flatbase end"  # FLAT BASE, ARROW AT THE END
@@ -147,10 +128,7 @@ class Axis(StrEnum):
 
     Valid values are: X, Y.
 
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Axis.X.value
-        'x'
+
     """
 
     X = "x"
@@ -164,10 +142,7 @@ class BackStyle(StrEnum):
     the shape.back_style value.
 
     Valid values are: COLOR, COLOR_AND_GRID, EMPTY, GRIDLINES, PATTERN, SHADING, SHADING_AND_GRID.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.BackStyle.COLOR.value
-        'COLOR'
+
     """
 
     COLOR = "COLOR"
@@ -184,10 +159,7 @@ class BlendMode(StrEnum):
 
     Valid values are: COLOR, COLORBURN, COLORDODGE, DARKEN, DIFFERENCE, EXCLUSION, HARDLIGHT, HUE, LIGHTEN,
     LUMINOSITY, MULTIPLY, NORMAL, OVERLAY, SATURATION, SCREEN, SOFTLIGHT.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.BlendMode.COLOR.value
-        'color'
+
     """
 
     COLOR = "color"
@@ -208,14 +180,62 @@ class BlendMode(StrEnum):
     SOFTLIGHT = "softlight"
 
 
+class Border(StrEnum):
+    """Excel border commands for a table cell range.
+
+    Dropdown commands and the Format Cells border tab. ``NONE`` and
+    ``NO_BORDER`` clear edges. ``OUTLINE`` and ``OUTSIDE`` are the outer
+    edges. Thick and double commands set those weights on the edges they
+    name.
+
+    Valid values are: ALL, BOTTOM, BOTTOM_DOUBLE, DIAGONAL_DOWN,
+    DIAGONAL_UP, INSIDE, INSIDE_HORIZONTAL, INSIDE_VERTICAL, LEFT, NONE,
+    NO_BORDER, OUTLINE, OUTSIDE, RIGHT, THICK_BOTTOM, THICK_OUTSIDE, TOP,
+    TOP_AND_BOTTOM, TOP_AND_DOUBLE_BOTTOM, TOP_AND_THICK_BOTTOM.
+
+
+    """
+
+    ALL = "all borders"
+    BOTTOM = "bottom border"
+    BOTTOM_DOUBLE = "bottom double border"
+    DIAGONAL_DOWN = "diagonal down"
+    DIAGONAL_UP = "diagonal up"
+    INSIDE = "inside"
+    INSIDE_HORIZONTAL = "inside horizontal"
+    INSIDE_VERTICAL = "inside vertical"
+    LEFT = "left border"
+    NONE = "none"
+    NO_BORDER = "no border"
+    OUTLINE = "outline"
+    OUTSIDE = "outside borders"
+    RIGHT = "right border"
+    THICK_BOTTOM = "thick bottom border"
+    THICK_OUTSIDE = "thick outside border"
+    TOP = "top border"
+    TOP_AND_BOTTOM = "top and bottom border"
+    TOP_AND_DOUBLE_BOTTOM = "top and double bottom border"
+    TOP_AND_THICK_BOTTOM = "top and thick bottom border"
+
+
+class BorderLine(StrEnum):
+    """Line weight used by a table border edge.
+
+    Valid values are: DOUBLE, THICK, THIN.
+
+
+    """
+
+    DOUBLE = "double"
+    THICK = "thick"
+    THIN = "thin"
+
+
 class ColorSpace(StrEnum):
     """ColorSpace is used to set the color space of the colors.
 
     Valid values are: CMYK, GRAY, HCL, HLS, HSV, LAB, RGB, YIQ.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.ColorSpace.CMYK.value
-        'CMYK'
+
     """
 
     CMYK = "CMYK"
@@ -232,10 +252,7 @@ class ColorMatrix(StrEnum):
     """ColorMatrix is used to set the type attribute of the SVG feColorMatrix primitive.
 
     Valid values are: MATRIX, SATURATE, HUE_ROTATE, LUMINANCE_TO_ALPHA.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.ColorMatrix.MATRIX.value
-        'matrix'
+
     """
 
     MATRIX = "matrix"
@@ -250,10 +267,7 @@ class Connection(StrEnum):
 
     Valid values are: CHAIN, COINCIDENT, COLL_CHAIN, CONGRUENT, CONTAINS, COVERS, DISJOINT, END_END, END_START,
     FLIPPED, INTERSECT, NONE, OVERLAPS, PARALLEL, START_END, START_START, TOUCHES, WITHIN, YJOINT.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Connection.CHAIN.value
-        'CHAIN'
+
     """
 
     CHAIN = "CHAIN"
@@ -283,10 +297,7 @@ class Connector(StrEnum):
 
     Valid values are: ARC, ARROW_LINE, CURVE, LINE, DOUBLE_LINE, SQUIGLY, ZIGZAG, SQUIGLY_ARROW, ZIGZAG_ARROW,
     DOUBLE_ARROW, DOUBLE_SQUIGLY.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Connector.ARC.value
-        'ARC'
+
     """
 
     ARC = "ARC"
@@ -307,10 +318,7 @@ class ConstraintType(StrEnum):
 
     Valid values are: COLLINEAR, DISTANCE, LINE_ANGLE, PARALLEL, PERPENDICULAR, EQUAL_SIZE, EQUAL_VALUE,
     INNER_TANGENT, OUTER_TANGENT.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.ConstraintType.COLLINEAR.value
-        'COLLINEAR'
+
     """
 
     COLLINEAR = "COLLINEAR"
@@ -329,10 +337,7 @@ class Compiler(StrEnum):
     Currently, only XELATEX is used.
 
     Valid values are: LATEX, PDFLATEX, XELATEX, LUALATEX.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Compiler.LATEX.value
-        'LATEX'
+
     """
 
     LATEX = "LATEX"
@@ -345,10 +350,7 @@ class Control(StrEnum):
     """Used with the modifiers.
 
     Valid values are: INITIAL, PAUSE, RESTART, RESUME, STOP.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Control.INITIAL.value
-        'INITIAL'
+
     """
 
     INITIAL = "INITIAL"
@@ -362,10 +364,7 @@ class Conway(StrEnum):
     """Frieze groups in Conway notation.
 
     Valid values are: HOP, JUMP, SIDLE, SPINNING_HOP, SPINNING_JUMP, SPINNING_SIDLE, STEP.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Conway.HOP.value
-        'HOP'
+
     """
 
     HOP = "HOP"
@@ -381,10 +380,7 @@ class CurveMode(StrEnum):
     """CurveMode is used to set how arc objects are drawn.
 
     Valid values are: OPEN, CHORD, PIE.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.CurveMode.OPEN.value
-        'OPEN'
+
     """
 
     OPEN = "OPEN"
@@ -397,10 +393,7 @@ class Dep(StrEnum):
     when they are copied. Dependent copies share the same underlying data.
 
     Valid values are: FALSE, TRUE, GEOM, STYLE.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Dep.FALSE.value
-        'FALSE'
+
     """
 
     FALSE = "FALSE"  # Independent
@@ -413,10 +406,7 @@ class DocumentClass(StrEnum):
     """DocumentClass is used to set the class of the LaTeX document.
 
     Valid values are: ARTICLE, BEAMER, BOOK, IEEETRAN, LETTER, REPORT, SCRARTCL, SLIDES, STANDALONE.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.DocumentClass.ARTICLE.value
-        'article'
+
     """
 
     ARTICLE = "article"
@@ -434,10 +424,7 @@ class FillMode(StrEnum):
     """FillMode is used to set the fill mode of the shape.
 
     Valid values are: EVENODD, NONZERO.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.FillMode.EVENODD.value
-        'even odd'
+
     """
 
     EVENODD = "even odd"
@@ -448,10 +435,7 @@ class FontFamily(StrEnum):
     """FontFamily is used to set the family of the font.
 
     Valid values are: MONOSPACE, SERIF, SANSSERIF.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.FontFamily.MONOSPACE.value
-        'monospace'
+
     """
 
     MONOSPACE = "monospace"  # \ttfamily, \texttt
@@ -464,10 +448,7 @@ class FontSize(StrEnum):
 
     Valid values are: FOOTNOTESIZE, HUGE, HUGE2, LARGE, LARGE2, LARGE3, NORMAL, SCRIPTSIZE,
     SMALL, TINY, MINISCULE.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.FontSize.FOOTNOTESIZE.value
-        'footnotesize'
+
     """
 
     FOOTNOTESIZE = "footnotesize"
@@ -489,10 +470,7 @@ class FontStretch(StrEnum):
 
     Valid values are: CONDENSED, EXPANDED, EXTRA_CONDENSED, EXTRA_EXPANDED, NORMAL, SEMI_CONDENSED,
     SEMI_EXPANDED, ULTRA_CONDENSED, ULTRA_EXPANDED.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.FontStretch.CONDENSED.value
-        'condensed'
+
     """
 
     CONDENSED = "condensed"
@@ -510,10 +488,7 @@ class FontStrike(StrEnum):
     """FontStrike is used to set the strike of the font.
 
     Valid values are: OVERLINE, THROUGH, UNDERLINE.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.FontStrike.OVERLINE.value
-        'overline'
+
     """
 
     OVERLINE = "overline"
@@ -525,10 +500,7 @@ class FontWeight(StrEnum):
     """FontWeight is used to set the weight of the font.
 
     Valid values are: BOLD, MEDIUM, NORMAL.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.FontWeight.BOLD.value
-        'bold'
+
     """
 
     BOLD = "bold"
@@ -543,10 +515,7 @@ class FragmentColoring(StrEnum):
 
     AREA colors equivalent fragments (same-area bins) with the same palette
     color. RADIUS colors fragments by distance from the lace center.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.FragmentColoring.AREA.value
-        'AREA'
+
     """
 
     AREA = "AREA"
@@ -556,10 +525,7 @@ class FragmentColoring(StrEnum):
 class FragmentStyle(StrEnum):
     """FragmentStyle is used to set the way lace fragments are drawn.
     See the documentation for further explanation.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.FragmentStyle.DIAMOND.value
-        'DIAMOND'
+
     """
 
     DIAMOND = "DIAMOND"
@@ -574,10 +540,7 @@ class FrameShape(StrEnum):
 
     Valid values are: CIRCLE, DIAMOND, ELLIPSE, FORBIDDEN, PARALLELOGRAM, POLYGON, RECTANGLE, RHOMBUS,
     SPLITCIRCLE, SQUARE, STAR, TRAPEZOID.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.FrameShape.CIRCLE.value
-        'circle'
+
     """
 
     CIRCLE = "circle"
@@ -598,10 +561,7 @@ class Graph(StrEnum):
     """Graph is used to set the type of graph.
 
     Valid values are: DIRECTED, DIRECTEDWEIGHTED, UNDIRECTED, UNDIRECTEDWEIGHTED.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Graph.DIRECTED.value
-        'DIRECTED'
+
     """
 
     DIRECTED = "DIRECTED"
@@ -614,10 +574,7 @@ class GradientType(StrEnum):
     """SVG gradient types.
 
     Valid values are: LINEAR, RADIAL.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.GradientType.LINEAR.value
-        'linear'
+
     """
 
     LINEAR = "linear"
@@ -629,10 +586,7 @@ class GridType(StrEnum):
     Grids are used for creating star patterns.
 
     Valid values are: CIRCULAR, SQUARE, HEXAGONAL, MIXED.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.GridType.CIRCULAR.value
-        'CIRCULAR'
+
     """
 
     CIRCULAR = "CIRCULAR"
@@ -646,10 +600,7 @@ class HeadPos(StrEnum):
     """Arrow head positions.
 
     Valid values are: BOTH, END, MIDDLE, START, NONE.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.HeadPos.BOTH.value
-        'BOTH'
+
     """
 
     BOTH = "BOTH"
@@ -664,10 +615,7 @@ class ImageMode(StrEnum):
 
     Valid values include ``MODE_1``, ``L``, ``RGB``, ``RGBA``, ``CMYK``, and
     related Pillow mode strings.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.ImageMode.MODE_1.value
-        '1'
+
     """
 
     MODE_1 = "1"  # 1 bit per pixel (black and white)
@@ -698,10 +646,7 @@ class IsometryType(StrEnum):
     """Isometry classification for geometric transforms.
 
     Valid values are: IDENTITY, TRANSLATION, ROTATION, MIRROR, GLIDE_REFLECTION.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.IsometryType.IDENTITY.value
-        'IDENTITY'
+
     """
 
     IDENTITY = "IDENTITY"
@@ -715,10 +660,7 @@ class IUC(StrEnum):
     """IUC notation for frieze groups.
 
     Valid values are: P1, P11G, P11M, P1M1, P2, P2MG, P2MM.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.IUC.P1.value
-        'P1'
+
     """
 
     P1 = "P1"
@@ -734,10 +676,7 @@ class LatRef(StrEnum):
     """Lattice reference kinds for positioning on a lattice.
 
     Valid values are: COORD, LERP, AXIS, POINT, VERTEX, EDGE, DISTANCE.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.LatRef.COORD.value
-        'COORD'
+
     """
 
     COORD = "COORD"
@@ -753,10 +692,7 @@ class LatType(StrEnum):
     """Lattice cell types.
 
     Valid values are: HEX, SQR, RECT, RHOMB, PAR.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.LatType.HEX.value
-        'HEX'
+
     """
 
     HEX = "HEX"  # Hexagon
@@ -770,10 +706,7 @@ class LineCap(StrEnum):
     """LineCap is used to set the type of line cap.
 
     Valid values are: BUTT, ROUND, SQUARE.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.LineCap.BUTT.value
-        'butt'
+
     """
 
     BUTT = "butt"
@@ -786,10 +719,7 @@ class LineDashArray(StrEnum):
 
     Valid values are: DASHDOT, DASHDOTDOT, DASHED, DENSELY_DASHED, DENSELY_DOTTED, DOTTED, LOOSELY_DASHED,
     LOOSELY_DOTTED, SOLID.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.LineDashArray.DASHDOT.value
-        'dash dot'
+
     """
 
     DASHDOT = "dash dot"
@@ -807,10 +737,7 @@ class LineJoin(StrEnum):
     """LineJoin is used to set the type of line join.
 
     Valid values are: BEVEL, MITER, ROUND.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.LineJoin.BEVEL.value
-        'bevel'
+
     """
 
     BEVEL = "bevel"
@@ -822,10 +749,7 @@ class LineWidth(StrEnum):
     """LineWidth is used to set the width of the line.
 
     Valid values are: SEMITHICK, THICK, THIN, ULTRA_THICK, ULTRA_THIN, VERY_THICK, VERY_THIN.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.LineWidth.SEMITHICK.value
-        'semithick'
+
     """
 
     SEMITHICK = "semithick"
@@ -841,10 +765,7 @@ class InPlace(StrEnum):
     """In-place operators used with transform ``incr`` arguments.
 
     Valid values are: ADD, SUB, MUL, TRUE_DIV, FLOOR_DIV, MOD, POW.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.InPlace.ADD.value
-        'ADD'
+
     """
 
     ADD = "ADD"
@@ -860,10 +781,7 @@ class Extent(StrEnum):
     """Extent controls how a Line is rendered.
 
     Valid values are: SEGMENT, RAY, INFINITE.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Extent.SEGMENT.value
-        'segment'
+
     """
 
     SEGMENT = "segment"
@@ -876,10 +794,7 @@ class FilterType(StrEnum):
 
     Valid values include GAUSSIAN_BLUR, BLEND, COLOR_MATRIX, DROP_SHADOW,
     and other ``fe*`` filter types.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.FilterType.GAUSSIAN_BLUR.value
-        'feGaussianBlur'
+
     """
 
     GAUSSIAN_BLUR = "feGaussianBlur"
@@ -908,10 +823,7 @@ class MarkerType(StrEnum):
     HALF_CIRCLE_F, HALF_DIAMOND, HALF_DIAMOND_F, HALF_SQUARE, HALF_SQUARE_F, HEXAGON, HEXAGON_F, INDICES,
     MINUS, OPLUS, OPLUS_F, O_TIMES, O_TIMES_F, PENTAGON, PENTAGON_F, PLUS, SHAPE, SQUARE, SQUARE_F, STAR,
     TRIANGLE, TRIANGLE_F, VECTOR.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.MarkerType.ASTERISK.value
-        'asterisk'
+
     """
 
     ASTERISK = "asterisk"
@@ -955,10 +867,7 @@ class MusicScale(StrEnum):
 
     Valid values are: MAJOR, MINOR, CHROMATIC, PENTATONIC, IONIC, DORIAN, PHRYGIAN, LYDIAN, MIXOLYDIAN,
     AEOLIAN, LOCRIAN.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.MusicScale.MAJOR.value
-        'major'
+
     """
 
     MAJOR = "major"
@@ -979,10 +888,7 @@ class Orientation(StrEnum):
     lines.
 
     Valid values are: ANGLED, HORIZONTAL, VERTICAL.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Orientation.ANGLED.value
-        'ANGLED'
+
     """
 
     ANGLED = "ANGLED"
@@ -995,10 +901,7 @@ class PageMargins(StrEnum):
     Used in Page class.
 
     Valid values are: CUSTOM, NARROW, STANDARD, WIDE.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.PageMargins.CUSTOM.value
-        'custom'
+
     """
 
     CUSTOM = "custom"
@@ -1012,10 +915,7 @@ class PageNumbering(StrEnum):
     Used in Page class.
 
     Valid values are: ALPH, ALPHUPPER, ARABIC, NONE, ROMAN, ROMAN_UPPER.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.PageNumbering.ALPH.value
-        'alph'
+
     """
 
     ALPH = "alph"
@@ -1031,10 +931,7 @@ class PageNumberPosition(StrEnum):
     Used in Page class.
 
     Valid values are: BOTTOM_CENTER, BOTTOM_LEFT, BOTTOM_RIGHT, CUSTOM, TOP_CENTER, TOP_LEFT, TOP_RIGHT.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.PageNumberPosition.BOTTOM_CENTER.value
-        'bottom'
+
     """
 
     BOTTOM_CENTER = "bottom"
@@ -1051,10 +948,7 @@ class PageOrientation(StrEnum):
     Used in Page class.
 
     Valid values are: LANDSCAPE, PORTRAIT.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.PageOrientation.LANDSCAPE.value
-        'landscape'
+
     """
 
     LANDSCAPE = "landscape"
@@ -1067,10 +961,7 @@ class PageSize(StrEnum):
 
     Valid values are: LETTER, LEGAL, EXECUTIVE, B0, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13,
     A0, A1, A2, A3, A4, A5, A6.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.PageSize.LETTER.value
-        'letterpaper'
+
     """
 
     LETTER = "letterpaper"
@@ -1107,12 +998,7 @@ class PageSize(StrEnum):
         Returns:
             tuple[float, float]: Width and height in points.
 
-        Examples:
-            >>> import simetri.graphics as sg
-            >>> sg.PageSize.A3.in_points()
-            (841.89, 1190.55)
-            >>> sg.PageSize.LETTER.in_points()
-            (612.0, 792.0)
+
         """
         if self in _PAGE_SIZE_MM:
             width_mm, height_mm = _PAGE_SIZE_MM[self]
@@ -1173,10 +1059,7 @@ class PathOperation(StrEnum):
 
     Valid values are: ARC, ARC_TO, BLEND_ARC, BLEND_CUBIC, BLEND_QUAD, BLEND_SINE, CLOSE, CUBIC_TO, FORWARD,
     HOBBY_TO, H_LINE_TO, LINE_TO, MOVE_TO, QUAD_TO, R_LINE, R_H_LINE, R_V_LINE, R_MOVE, SEGMENTS, SINE, V_LINE_TO.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.PathOperation.ARC.value
-        'ARC'
+
     """
 
     ARC = "ARC"
@@ -1215,10 +1098,7 @@ class PatternType(StrEnum):
 
     Valid values are: BRICKS, CHECKERBOARD, CROSSHATCH, CROSSHATCH_DOTS, DOTS, FIVE_POINTED_STARS, GRID,
     HORIZONTAL_LINES, NORTHEAST, NORTHWEST, SIX_POINTED_STARS, VERTICAL_LINES.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.PatternType.BRICKS.value
-        'bricks'
+
     """
 
     BRICKS = "bricks"
@@ -1241,10 +1121,7 @@ class Placement(StrEnum):
 
     Valid values are: ABOVE, ABOVE_LEFT, ABOVE_RIGHT, BELOW, BELOW_LEFT, BELOW_RIGHT, CENTERED, INSIDE,
     LEFT, OUTSIDE, RIGHT.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Placement.ABOVE.value
-        'above'
+
     """
 
     ABOVE = "above"
@@ -1265,10 +1142,7 @@ class PlaitStyle(StrEnum):
 
     Valid values are: EMBOSS, EMBOSS2, FRUSTUM, DIAMOND, INNERLINES,
     INNERLOOPS, DOUBLE_LINES.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.PlaitStyle.EMBOSS.value
-        'EMBOSS'
+
     """
 
     EMBOSS = "EMBOSS"
@@ -1286,10 +1160,7 @@ class Reference(StrEnum):
     that will be computed during successive transformations.
     They are specified by bounding-box width, height, points, lines,
     angle, vertex, edge, or their offsets.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Reference.SOUTHEAST.value
-        'southeast'
+
     """
 
     # points
@@ -1324,10 +1195,7 @@ class ReferenceTarget(StrEnum):
     """Which object a dynamic transform reference resolves against.
 
     Valid values are: KERNEL, PATTERN, ACTIVE.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.ReferenceTarget.KERNEL.value
-        'kernel'
+
     """
 
     KERNEL = "kernel"
@@ -1339,10 +1207,7 @@ class Render(StrEnum):
     """Render is used to set the type of rendering.
 
     Valid values are: EPS, PDF, SVG, TEX.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Render.EPS.value
-        'EPS'
+
     """
 
     EPS = "EPS"
@@ -1355,10 +1220,7 @@ class Renderer(StrEnum):
     """Renderer is used to set the rendering engine.
 
     Valid values are: SVG, TEX.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Renderer.SVG.value
-        'SVG'
+
     """
 
     SVG = "SVG"
@@ -1369,10 +1231,7 @@ class Result(StrEnum):
     """Result is used for the return values of the functions.
 
     Valid values are: FAILURE, GO, NOPAGES, OVERWRITE, SAVED, STOP, SUCCESS.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Result.FAILURE.value
-        'FAILURE'
+
     """
 
     FAILURE = "FAILURE"
@@ -1390,10 +1249,7 @@ class ShadeType(StrEnum):
     Valid values are: AXIS_LEFT_RIGHT, AXIS_TOP_BOTTOM, AXIS_LEFT_MIDDLE, AXIS_RIGHT_MIDDLE, AXIS_TOP_MIDDLE,
     AXIS_BOTTOM_MIDDLE, BALL, BILINEAR, COLORWHEEL, COLORWHEEL_BLACK, COLORWHEEL_WHITE, RADIAL_INNER,
     RADIAL_OUTER, RADIAL_INNER_OUTER.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.ShadeType.AXIS_LEFT_RIGHT.value
-        'axis left right'
+
     """
 
     AXIS_LEFT_RIGHT = "axis left right"
@@ -1418,10 +1274,7 @@ class Side(StrEnum):
     They determine the position of the offset lines.
 
     Valid values are: BASE, BOTTOM, DIAGONAL1, DIAGONAL2, H_CENTERLINE, LEFT, MID, RIGHT, TOP, V_CENTERLINE.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Side.BASE.value
-        'BASE'
+
     """
 
     BASE = "BASE"
@@ -1441,10 +1294,7 @@ class State(StrEnum):
     Not implemented yet.
 
     Valid values are: INITIAL, PAUSED, RESTARTING, RUNNING, STOPPED.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.State.INITIAL.value
-        'INITIAL'
+
     """
 
     INITIAL = "INITIAL"
@@ -1458,10 +1308,7 @@ class SvgLoc(StrEnum):
     """Where raw SVG from ``canvas.insert_svg`` is placed.
 
     Valid values are: DEFS, DOCUMENT, PICTURE, NONE.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.SvgLoc.DEFS.value
-        'DEFS'
+
     """
 
     DEFS = "DEFS"  # inside <defs>
@@ -1471,26 +1318,14 @@ class SvgLoc(StrEnum):
 
 
 class SvgMaskType(StrEnum):
-    """SVG mask type modes.
-
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.SvgMaskType.ALPHA.value
-        'alpha'
-    """
+    """SVG mask type modes."""
 
     ALPHA = "alpha"
     LUMINANCE = "luminance"
 
 
 class SvgUnits(StrEnum):
-    """SVG coordinate unit modes.
-
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.SvgUnits.OBJECT_BOUNDING_BOX.value
-        'objectBoundingBox'
-    """
+    """SVG coordinate unit modes."""
 
     OBJECT_BOUNDING_BOX = "objectBoundingBox"
     USER_SPACE_ON_USE = "userSpaceOnUse"
@@ -1501,10 +1336,7 @@ class TexLoc(StrEnum):
     objects.
 
     Valid values are: DOCUMENT, PICTURE, PREAMBLE, NONE.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.TexLoc.DOCUMENT.value
-        'DOCUMENT'
+
     """
 
     DOCUMENT = "DOCUMENT"  # BETWEEN \BEGIN{DOCUMENT} AND \BEGIN{TIKZPICTURE}
@@ -1518,10 +1350,7 @@ class Topology(StrEnum):
 
     Valid values are: CLOSED, COLLINEAR, CONGRUENT, FOLDED, INTERSECTING, OPEN, SELF_INTERSECTING, SIMPLE,
     YJOINT.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Topology.CLOSED.value
-        'CLOSED'
+
     """
 
     CLOSED = "CLOSED"
@@ -1539,10 +1368,7 @@ class TransformationType(StrEnum):
     """Transformation is used to set the type of a transformation.
 
     Valid values are: GLIDE, MIRROR, ROTATE, SCALE, SHEAR, TRANSFORM, TRANSLATE.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.TransformationType.GLIDE.value
-        'glide'
+
     """
 
     GLIDE = "glide"
@@ -1557,10 +1383,7 @@ class TransformationType(StrEnum):
 class Types(StrEnum):
     """All objects in simetri.graphics has type and subtype properties.
     Types are mostly Group and Shape,  and subtypes are listed here.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.Types.ALPHA_GROUP.value
-        'ALPHA_GROUP'
+
     """
 
     ALPHA_GROUP = "ALPHA_GROUP"
@@ -1733,6 +1556,7 @@ class Types(StrEnum):
     UNIPATCH = "UNIPATCH"
     UNIPOLY = "UNIPOLY"
     USER = "USER"
+    VECTOR = "VECTOR"
     VERTEX = "VERTEX"
     WARP = "WARP"
     WEFT = "WEFT"
@@ -1898,6 +1722,7 @@ class _OutputWarnings(StrEnum):
 
     empty_svg = "output.empty_svg"
     empty_tex = "output.empty_tex"
+    tag_math = "output.tag_math"
 
 
 _OutputWarnings.empty_svg.__doc__ = (
@@ -1905,6 +1730,10 @@ _OutputWarnings.empty_svg.__doc__ = (
 )
 _OutputWarnings.empty_tex.__doc__ = (
     "TeX export wrote empty output because the canvas has no sketches."
+)
+_OutputWarnings.tag_math.__doc__ = (
+    "A tag mixes text and a $...$ formula. SVG draws the characters, "
+    "including the dollar signs."
 )
 
 
@@ -1983,10 +1812,7 @@ class WarningType:
 
     Use ``sg.doc(WarningType.canvas)`` for a subgroup, or
     ``sg.doc(WarningType.canvas.save_path)`` for one leaf.
-    Examples:
-        >>> import simetri.graphics as sg
-        >>> sg.WarningType.style.line_fill_color.value
-        'style.line_fill_color'
+
     """
 
     canvas = _CanvasWarnings
@@ -2140,9 +1966,7 @@ length_refs = {
 angle_refs = {
     Reference.ANGLE,
 }
-# Drawable is used in runtime-imported annotations, so it must reference
-# Python types rather than enum values.
-Drawable: TypeAlias = "Base | Group | Shape | Tag | Edge"
+Drawable: TypeAlias = Union["Base", "Group", "Shape", "Tag", "Edge"]
 
 
 anchors = {

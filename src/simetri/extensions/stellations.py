@@ -10,6 +10,7 @@ from itertools import cycle
 from typing import Any, TypeVar
 
 from ..geom.geom_utils import connected_pairs
+from ..geom.points.point_utils import remove_duplicate_points
 from ..geom.segments.line_utils import subdivide_segments
 from ..helpers.utilities import get_cycle_size
 from ..shapes.geom_items import reg_poly_points
@@ -60,11 +61,20 @@ def get_skipped_items(
     return [items[idx] for idx in indices[:n_ind_cycle]]
 
 
-def string_star(
+# def string_star(
+#     n_sides: int,
+#     n_subdivs: int,
+#     skip: int | Sequence[int],
+#     step: int | Sequence[int],
+#     radius: float = 100,
+# ) -> list[Sequence[float]]:
+
+
+def stellate(
     n_sides: int,
-    n_subdivs: int,
-    skip: int | Sequence[int],
-    step: int | Sequence[int],
+    subdivs: int | Sequence[int] = 1,
+    skips: int | Sequence[int] = 1,
+    steps: int | Sequence[int] = 1,
     radius: float = 100,
 ) -> list[Sequence[float]]:
     """Build the vertex walk for a string-art star pattern.
@@ -75,33 +85,63 @@ def string_star(
 
     Args:
         n_sides: Number of sides in the base regular polygon.
-        n_subdivs: Number of equal subdivisions per skipped edge.
-        skip: Step size or cyclic sequence of step sizes for the initial
+        subdivs: Number of equal subdivisions per skipped edge, or cyclic
+            sequence of subdivisions.
+        skips: Step size or cyclic sequence of step sizes for the initial
             polygon-vertex walk.
-        step: Step size or cyclic sequence of step sizes for the subdivided
+        steps: Step size or cyclic sequence of step sizes for the subdivided
             vertex walk.
         radius: Radius of the base regular polygon. Defaults to 100.
 
     Returns:
         list[Sequence[float]]: Vertex walk of the resulting string-art star.
 
+    Raises:
+        ValueError: If every value in ``skips`` is a multiple of ``n_sides``.
+            The walk stays on the first vertex, so there is no edge to
+            subdivide.
+
     Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.stellate(5, [8, 7], 5, 6)
+        Traceback (most recent call last):
+        ...
+        ValueError: skips 5 never leaves the first of 5 vertices (each step is a multiple of n_sides), so there is no edge to subdivide.
         >>> star = string_star(7, 4, 3, 9)
         >>> len(star)
         29
         >>> [sg.round_point(star[idx], 2) for idx in (0, 10, 20, 28)]
         [(100.0, 0.0), (-13.87, -17.4), (-22.25, 97.49), (100.0, 0.0)]
     """
+    skip_values = (skips,) if isinstance(skips, int) else tuple(skips)
+    if skip_values and all(skip % n_sides == 0 for skip in skip_values):
+        raise ValueError(
+            f"skips {skips!r} never leaves the first of {n_sides} vertices "
+            "(each step is a multiple of n_sides), so there is no edge "
+            "to subdivide."
+        )
+
     reg_poly_vertices = reg_poly_points(n_sides, r=radius)
 
-    skipped_vertices = get_skipped_items(reg_poly_vertices, skip)
+    skipped_vertices = get_skipped_items(reg_poly_vertices, skips)
     skipped_vertices += [skipped_vertices[0]]
 
-    all_vertices = subdivide_segments(
-        connected_pairs(skipped_vertices), n_subdivs, as_vertices=True
-    )[:-1]
+    if isinstance(subdivs, (list, tuple)):
+        all_vertices = []
+        edges = connected_pairs(skipped_vertices)
+        cycle_subdivs = cycle(subdivs)
+        for edge in edges:
+            divs = subdivide_segments(
+                [edge], next(cycle_subdivs), as_vertices=True
+            )
+            all_vertices.extend(divs)
+        all_vertices = remove_duplicate_points(all_vertices)[:-1]
+    else:
+        all_vertices = subdivide_segments(
+            connected_pairs(skipped_vertices), subdivs, as_vertices=True
+        )[:-1]
 
-    stepped_vertices = get_skipped_items(all_vertices, step)
+    stepped_vertices = get_skipped_items(all_vertices, steps)
     stepped_vertices += [stepped_vertices[0]]
 
     return stepped_vertices

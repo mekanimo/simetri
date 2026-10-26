@@ -2407,6 +2407,31 @@ def _validated_exclude(
     return tuple(needles)
 
 
+def ask(question: str, *, limit: int | None = None) -> str:
+    """Rank existing help entries for a plain-language question.
+
+    The question is embedded locally and compared with the help index.
+    This needs the ``gpt4all`` package and ``help_embeddings.npz``.
+
+    Args:
+        question: Question text.
+        limit: Maximum number of matches. ``None`` uses
+            ``defaults["help_suggestion_limit"]``.
+
+    Returns:
+        str: Ranked excerpts and help commands, or a message when the
+        question is empty or the index or ``gpt4all`` is unavailable.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> sg.ask("  ")
+        'Pass a non-empty question string.'
+    """
+    from simetri.scrap.help_embeddings.ask import ask as ask_help
+
+    return ask_help(question, limit=limit)
+
+
 def help(
     obj: object,
     exact: bool = True,

@@ -57,6 +57,7 @@ from ..geom.segments.line_utils import (
     inclination_angle,
     intersect,
 )
+from ..geom.vectors import Vector
 from ..group.batch import Group
 from ..helpers.arrows import _style_annotation
 from ..helpers.illustration import Tag, TextPath, convert_latex_font_size
@@ -66,8 +67,10 @@ from ..helpers.labels import (
 from ..helpers.utilities import (
     decompose_transformations,
     group_into_bins,
+    tag_pure_formula,
 )
 from ..shapes.shape import Shape, all_segments
+from . import vector_draw
 from .render_svg.svg_sketch import SvgSketch
 from .render_tikz.tikz_sketch import TexSketch
 from .sketch import (
@@ -101,7 +104,9 @@ DrawStyleKwargs = dict[str, object]
 
 
 if TYPE_CHECKING:
+    from ..base.core import Base
     from ..geom.bbox import BoundingBox
+    from ..geom.segments.line_utils import Edge
     from ..helpers.dimension import Dimension
     from ..images.image import PDF, Image
     from ..interlace.lace import Lace
@@ -134,8 +139,10 @@ def help_lines(
 ) -> Self:
     """Draw a square grid, and optionally the coordinate axes.
 
-    When ``deferred`` is true, a ``HelpLinesSketch`` is stored and the
-    grid is not drawn yet. Otherwise the grid is drawn immediately, and
+    When ``deferred`` is true, or when ``pos``, ``width``, and ``height``
+    are omitted, a ``HelpLinesSketch`` is stored and clipped to the
+    canvas at save time. Omitted size with ``deferred`` false uses the
+    current canvas matrix. Otherwise the grid is drawn immediately, and
     the coordinate system is drawn when ``cs_size`` is greater than 0.
 
     Args:
@@ -159,7 +166,10 @@ def help_lines(
         >>> len(canvas.active_page.sketches) > 0
         True
     """
-    if deferred:
+    if deferred or (pos is None and width is None and height is None):
+        matrix = (
+            identity_matrix() if deferred else self._xform_matrix.copy()
+        )
         style_source = SimpleNamespace(type=Types.SKETCH)
 
         grid_kwargs = dict(kwargs)
@@ -225,6 +235,7 @@ def help_lines(
             y_axis_style,
             origin_style,
             runtime_defaults["CS_origin_size"],
+            xform_matrix=matrix,
         )
         self.active_page.sketches.append(sketch)
     else:
@@ -858,12 +869,17 @@ def draw_latex(
     _anchor_offsets = {
         Anchor.SOUTHWEST: (0, 0),
         Anchor.SOUTH: (W / 2, 0),
+        Anchor.BOTTOM: (W / 2, 0),
         Anchor.SOUTHEAST: (W, 0),
         Anchor.WEST: (0, H / 2),
+        Anchor.LEFT: (0, H / 2),
         Anchor.CENTER: (W / 2, H / 2),
+        Anchor.MIDPOINT: (W / 2, H / 2),
         Anchor.EAST: (W, H / 2),
+        Anchor.RIGHT: (W, H / 2),
         Anchor.NORTHWEST: (0, H),
         Anchor.NORTH: (W / 2, H),
+        Anchor.TOP: (W / 2, H),
         Anchor.NORTHEAST: (W, H),
     }
     resolved_anchor = anchor if anchor is not None else Anchor.SOUTHWEST
@@ -885,12 +901,21 @@ def draw_latex(
 
 
 def _tag_latex_formula(text: object) -> str | None:
-    """Return the formula inside a dollar-delimited Tag, otherwise None."""
+    """Return the body when the tag is only one ``$...$`` formula.
+
+    A single ``$`` stays text. Text around a formula is not one formula.
+
+    Examples:
+        >>> _tag_latex_formula("$x^2$")
+        'x^2'
+        >>> _tag_latex_formula("see $x^2$") is None
+        True
+        >>> _tag_latex_formula("$5") is None
+        True
+    """
     if not isinstance(text, str):
         return None
-    if len(text) >= 2 and text.startswith("$") and text.endswith("$"):
-        return text[1:-1]
-    return None
+    return tag_pure_formula(text)
 
 
 def insert_svg(self: Canvas, code: str, location: SvgLoc = SvgLoc.NONE) -> Self:
@@ -2805,8 +2830,28 @@ def _extend_canvas_space_points(
     canvas._all_vertices.extend(_canvas_space_points(canvas, points))
 
 
+def _bezier_handle_segments(item: Drawable) -> list[tuple[PointType, PointType]]:
+    """Return a Bezier curve's handle segments in drawable space."""
+    control_points = [
+        tuple(point[:2])
+        for point in homogenize(item.control_points) @ item.xform_matrix
+    ]
+    if item.subtype == Types.BEZIER:
+        return [
+            (control_points[0], control_points[1]),
+            (control_points[2], control_points[3]),
+        ]
+    return [
+        (control_points[0], control_points[1]),
+        (control_points[1], control_points[2]),
+    ]
+
+
 def extend_vertices(canvas: Canvas, item: Drawable | BoundingBox) -> None:
-    """Append the item's vertices to the canvas vertex list.
+    """Append the item's bounds geometry in draw-time canvas space.
+
+    Polygonal shapes and arrow parts use their actual vertices so rotating
+    an enclosing rectangle does not introduce empty space into the bounds.
 
     Args:
         canvas: Canvas whose ``_all_vertices`` list is extended (mutated).
@@ -2853,7 +2898,7 @@ def extend_vertices(canvas: Canvas, item: Drawable | BoundingBox) -> None:
         all_vertices.extend(vertices)
     elif item.subtype == Types.ARROW:
         for shape in item.all_shapes:
-            all_vertices.extend(_canvas_space_points(canvas, shape.corners))
+            all_vertices.extend(_canvas_space_points(canvas, shape.vertices))
     elif item.subtype == Types.LACE:
         for plait in item.plaits:
             all_vertices.extend(_canvas_space_points(canvas, plait.corners))
@@ -2875,6 +2920,18 @@ def extend_vertices(canvas: Canvas, item: Drawable | BoundingBox) -> None:
             extend_vertices(canvas, item.geometry)
         if getattr(item, "draw_skin", True) and item.skin is not None:
             extend_vertices(canvas, item.skin)
+    elif item.subtype == Types.VECTOR:
+        return
+    elif item.subtype in (
+        Types.ARROW_HEAD,
+        Types.LINE,
+        Types.POLYLINE,
+        Types.RECTANGLE,
+        Types.SEGMENT,
+        Types.SHAPE,
+        Types.SQUARE,
+    ):
+        all_vertices.extend(_canvas_space_points(canvas, item.vertices))
     else:
         corners = [
             x[:2]
@@ -2883,10 +2940,42 @@ def extend_vertices(canvas: Canvas, item: Drawable | BoundingBox) -> None:
         all_vertices.extend(corners)
 
 
+def draw_vector(self: Canvas, item: Vector, **kwargs: object) -> Self:
+    """Draw a vector as an arrow.
+
+    Args:
+        item: Vector to draw. Tail is at the origin unless ``vec_start``
+            or ``vec_end`` is given.
+        **kwargs: Placement and style arguments. ``shaft_`` and ``head_``
+            names style those parts. ``color`` and ``alpha`` style both.
+
+    Returns:
+        Self: The canvas.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from simetri.render.draw import draw_vector
+        >>> canvas = sg.Canvas()
+        >>> draw_vector(canvas, sg.Vector(40, 0)) is canvas
+        True
+        >>> len(canvas.active_page.sketches)
+        2
+    """
+    draw_items = kwargs.pop("draw_items", None)
+    draw_pos = kwargs.pop("draw_pos", None)
+    batch = (item,) if draw_items is None else draw_items
+    vector_draw.prepare_vector_batch(batch, kwargs, draw_pos)
+    arrow, part_kwargs = vector_draw.drawable_for_item(item, kwargs)
+    return draw(self, arrow, **part_kwargs)
+
+
 def draw(
     self: Canvas, item: Drawable | BoundingBox | Clipping, **kwargs: object
 ) -> Self:
     """Draw an item on the canvas.
+
+    ``draw_items`` and ``draw_pos`` are the ``Canvas.draw`` call list and
+    its ``pos``. They are removed before any sketch is styled.
 
     Args:
         item: Shape, group, or other drawable.
@@ -2925,6 +3014,8 @@ def draw(
         >>> len(labeled.active_page.sketches)
         2
     """
+    draw_items = kwargs.pop("draw_items", None)
+    draw_pos = kwargs.pop("draw_pos", None)
     try:
         draw_list = item.draw_list
     except AttributeError:
@@ -2943,6 +3034,10 @@ def draw(
 
     if item.type is Types.LATTICE:
         raise TypeError("Cannot draw a Lattice. Draw lattice.pattern instead.")
+
+    if vector_draw.is_vector_marker_shape(item, kwargs):
+        vector_draw.draw_vector_marker_shape(self, item, kwargs)
+        return self
 
     active_sketches = self.active_page.sketches
     subtype = item.subtype
@@ -2965,6 +3060,23 @@ def draw(
             _extend_canvas_space_points(self, handle)
 
             # square handle markers at segment endpoints (3x3)
+            for x, y in (handle[0], handle[-1]):
+                _extend_canvas_space_points(
+                    self,
+                    [
+                        (x - half_size, y - half_size),
+                        (x + half_size, y - half_size),
+                        (x + half_size, y + half_size),
+                        (x - half_size, y + half_size),
+                    ],
+                )
+    elif subtype in (Types.BEZIER, Types.Q_BEZIER) and kwargs.get(
+        "handles", False
+    ):
+        handle_size = runtime_defaults["handle_marker_size"]
+        half_size = handle_size / 2
+        for handle in _bezier_handle_segments(item):
+            _extend_canvas_space_points(self, handle)
             for x, y in (handle[0], handle[-1]):
                 _extend_canvas_space_points(
                     self,
@@ -3099,6 +3211,14 @@ def draw(
         active_sketches.append(create_sketch(item.line, self, **kwargs))
         for head in item.heads:
             active_sketches.append(create_sketch(head, self, **kwargs))
+    elif subtype == Types.VECTOR:
+        draw_vector(
+            self,
+            item,
+            draw_items=draw_items,
+            draw_pos=draw_pos,
+            **kwargs,
+        )
     elif subtype == Types.LACE:
         draw_lace(self, item, **kwargs)
     elif subtype == Types.FIGURE:
@@ -3829,6 +3949,25 @@ def _get_path_sketch(
     return path_sketch
 
 
+def _get_bezier_sketch(
+    item: Drawable, canvas: Canvas, **kwargs: object
+) -> ShapeSketch | list[Sketch]:
+    """Create a Bezier curve sketch and optional control-handle sketches."""
+    curve_sketch = _get_sketch(item, canvas, **kwargs)
+    if not kwargs.get("handles"):
+        return curve_sketch
+
+    del kwargs["handles"]
+    handle_sketches = []
+    for handle in _bezier_handle_segments(item):
+        shape = Shape(handle)
+        shape.subtype = Types.HANDLE
+        sketches = create_sketch(shape, canvas, **kwargs)
+        handle_sketches.extend(sketches)
+
+    return [curve_sketch, *handle_sketches]
+
+
 def _get_bbox_sketch(
     item: BoundingBox, canvas: Canvas, **kwargs: object
 ) -> ShapeSketch | None:
@@ -3901,7 +4040,9 @@ def _get_handle_sketch(
     sketch = ShapeSketch(vertices, canvas._sketch_xform_matrix)
     sketch.subtype = Types.HANDLE
     sketch.closed = False
-    set_shape_sketch_style(sketch, item, canvas, **kwargs)
+    handle_line_kwargs = dict(kwargs)
+    handle_line_kwargs["line_width"] = runtime_defaults["line_width"]
+    set_shape_sketch_style(sketch, item, canvas, **handle_line_kwargs)
     sketches.append(sketch)
     temp_item = Shape()
     temp_item.closed = True
@@ -4034,7 +4175,7 @@ _d_subtype_sketch = {
     Types.ARROW: _get_composite_sketch,
     Types.ARROW_HEAD: _get_sketch,
     Types.GROUP: _get_composite_sketch,
-    Types.BEZIER: _get_sketch,
+    Types.BEZIER: _get_bezier_sketch,
     Types.BOUNDING_BOX: _get_bbox_sketch,
     Types.CIRCLE: _get_circle_sketch,
     Types.CIRCULAR_GRID: _get_composite_sketch,
@@ -4061,7 +4202,7 @@ _d_subtype_sketch = {
     Types.PLAIT: _get_sketch,
     Types.POLYLINE: _get_sketch,
     Types.RADIAL_DIMENSION: _get_composite_sketch,
-    Types.Q_BEZIER: _get_sketch,
+    Types.Q_BEZIER: _get_bezier_sketch,
     Types.RECTANGLE: _get_sketch,
     Types.SECTION: _get_sketch,
     Types.SEGMENT: _get_sketch,
