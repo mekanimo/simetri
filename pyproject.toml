@@ -14,13 +14,18 @@ dependencies = [
     "ipykernel>=6.30.1",
     "ipython>=8.18.1",
     "matplotlib>=3.9.4",
+    "nbclient>=0.10.2",
+    "nbformat>=5.10.4",
     "networkx>=3.2.1",
     "numpy>=2.0.2",
+    "pdoc>=16.0.0",
     "pillow>=12.1.1",
     "pyan3>=2.8.1",
     "pymupdf>=1.25.1",
     "pypdf>=5.9.0",
     "pyvis>=0.3.2",
+    "pyyaml>=6.0.2",
+    "rapidfuzz>=3.14.6",
     "scipy>=1.13.1",
     "urllib3>=2.6.0",
 ]
@@ -43,9 +48,12 @@ Homepage = "https://github.com/mekanimo/simetri.graphics"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.sdist]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/simetri"]
 exclude = [
+    "src/simetri/scrap",
     "src/simetri/gui",
     "src/simetri/ground_rules_files",
     "src/simetri/tests",
@@ -59,13 +67,49 @@ exclude = [
 line-length = 80
 
 [tool.ruff.lint]
+extend-select = ["PERF"]
 ignore = ["F405", "F403", "F401", "F821"]
+
+[tool.ruff.lint.per-file-ignores]
+# Bootstrap: set_defaults() / apply_user_config() before re-exports.
+"src/simetri/graphics/__init__.py" = ["E402"]
+# Break circular import: defaults dict exists before style_map styles load.
+"src/simetri/config/settings.py" = ["E402"]
 
 [tool.ruff.format]
 line-ending = "auto"
+exclude = [
+    "src/simetri/geom/_tactile_tiling_data.py",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["src/simetri/tests"]
+doctest_optionflags = ["ELLIPSIS", "NORMALIZE_WHITESPACE"]
+norecursedirs = [
+    ".git",
+    ".tox",
+    ".venv",
+    "__pycache__",
+    "*.egg",
+    "agent_guides",
+    "build",
+    "dist",
+    "env",
+    "ground_rules_files",
+    "gui",
+    "node_modules",
+    "scrap",
+    "tests",
+    "tilings",
+    "topic_guides",
+    "venv",
+]
+# Optional local pass (phase 1, not CI):
+# uv run pytest --doctest-modules src/simetri -q
 
 [dependency-groups]
 dev = [
+    "junit2html>=31.1.4",
     "pytest>=8.3.4",
     "twine>=6.1.0",
 ]
