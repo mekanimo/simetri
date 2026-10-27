@@ -10,11 +10,11 @@ def hello() -> None:
     """Draw a greeting SVG to verify the Simetri install works.
 
     Examples:
-"""
+    """
 
     canvas = sg.Canvas()
 
-    canvas.text("Helo from simetri.graphics", (0, 0), font_size=20)
+    canvas.text("Hello from simetri.graphics", (0, 0), font_size=20)
 
     with tempfile.TemporaryDirectory(
         ignore_cleanup_errors=True, delete=True
