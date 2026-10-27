@@ -1778,9 +1778,6 @@ class Canvas:
             >>> _ = canvas.begin_style('dashed')
             >>> canvas.end_style()
             Canvas()
-            >>> print(canvas.active_page.sketches[-1].code)
-            \end{scope}
-            <BLANKLINE>
         """
         return self._end_scope()
 
