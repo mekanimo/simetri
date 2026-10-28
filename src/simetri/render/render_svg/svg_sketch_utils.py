@@ -528,15 +528,25 @@ def generate_marker_def(
     if is_filled and marker_fill_enabled:
         fill_attr = f'fill="{marker_color_svg}" fill-opacity="{marker_alpha}"'
         stroke_attr = 'stroke="none"'
+        stroke_pad = 0.0
     else:
         fill_attr = 'fill="none"'
-        stroke_attr = f'stroke="{marker_color_svg}" stroke-width="{marker_line_width}" stroke-opacity="{marker_alpha}"'
+        stroke_attr = (
+            f'stroke="{marker_color_svg}" stroke-width="{marker_line_width}" '
+            f'stroke-opacity="{marker_alpha}" stroke-linejoin="miter" '
+            f'stroke-linecap="butt"'
+        )
+        stroke_pad = float(marker_line_width)
 
     # Get marker path
     _, path_data = get_marker_path(marker_type, marker_size)
+    # The symbol sits on the viewBox edge. A mitered stroke needs room
+    # past that edge, or the points are clipped into rounded tips.
+    half = float(marker_size) + stroke_pad
+    box = half * 2
 
-    return f'''  <marker id="{marker_id}" markerWidth="{marker_size * 2}" markerHeight="{marker_size * 2}"
-      refX="0" refY="0" viewBox="{-marker_size} {-marker_size} {marker_size * 2} {marker_size * 2}" markerUnits="userSpaceOnUse" orient="auto">
+    return f'''  <marker id="{marker_id}" markerWidth="{box}" markerHeight="{box}"
+      refX="0" refY="0" viewBox="{-half} {-half} {box} {box}" markerUnits="userSpaceOnUse" orient="0">
     <g {fill_attr} {stroke_attr}>
       {path_data}
     </g>

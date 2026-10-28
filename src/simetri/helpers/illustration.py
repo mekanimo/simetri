@@ -73,6 +73,7 @@ _TAG_FRAME_PROPERTY_NAMES: frozenset[str] = frozenset(
 Color = colors.Color
 array = np.array
 
+
 def logo(scale: int | float = 1) -> Group:
     """Returns the Simetri logo.
 
@@ -95,71 +96,64 @@ def logo(scale: int | float = 1) -> Group:
     w = 10 * scale
     points = [  # noqa
         (0, 0),
-        (-4, 0),
-        (-4, 6),
-        (1, 6),
-        (1, 2),
-        (-2, 2),
-        (-2, 4),
-        (-1, 4),
-        (-1, 3),
-        (0, 3),
-        (0, 5),
-        (-3, 5),
-        (-3, 1),
-        (5, 1),
-        (5, -10),
-        (0, -10),
-        (0, -6),
-        (3, -6),
-        (3, -8),
-        (2, -8),
-        (2, -7),
-        (1, -7),
-        (1, -9),
-        (4, -9),
-        (4, -5),
-        (-4, -5),
-        (-4, -1),
-        (-1, -1),
-        (-1, -3),
-        (-2, -3),
-        (-2, -2),
-        (-3, -2),
-        (-3, -4),
-        (0, -4),
+        (-40, 0),
+        (-40, 60),
+        (10, 60),
+        (10, 20),
+        (-20, 20),
+        (-20, 40),
+        (-10, 40),
+        (-10, 30),
+        (0, 30),
+        (0, 50),
+        (-30, 50),
+        (-30, 10),
+        (50, 10),
+        (50, -100),
+        (0, -100),
+        (0, -60),
+        (30, -60),
+        (30, -80),
+        (20, -80),
+        (20, -70),
+        (10, -70),
+        (10, -90),
+        (40, -90),
+        (40, -50),
+        (-40, -50),
+        (-40, -10),
+        (-10, -10),
+        (-10, -30),
+        (-20, -30),
+        (-20, -20),
+        (-30, -20),
+        (-30, -40),
+        (0, -40),
     ]
 
     points2 = [
-        (1, 0),
-        (1, -4),
-        (4, -4),
-        (4, -3),
-        (2, -3),
-        (2, -1),
-        (3, -1),
-        (3, -2),  # noqa
-        (4, -2),
-        (4, 0),
+        (10, 0),
+        (10, -40),
+        (40, -40),
+        (40, -30),
+        (20, -30),
+        (20, -10),
+        (30, -10),
+        (30, -20),  # noqa
+        (40, -20),
+        (40, 0),
     ]
 
-    points = [(x * w, y * w) for x, y in points]
-    points2 = [(x * w, y * w) for x, y in points2]
-    kernel1 = Shape(points, closed=True)
-    kernel2 = Shape(points2, closed=True)
-    rad = 1
-    line_width = 2
-    kernel1.fillet_radius = rad
-    kernel2.fillet_radius = rad
-    kernel1.draw_fillets = True
-    kernel2.draw_fillets = True
-    kernel1.line_width = line_width
-    kernel2.line_width = line_width
-    fill_color = Color(*swatches_255[62][8])
-    kernel1.fill_color = fill_color
-    kernel2.fill_color = colors.white
+    path = Path2D(fill_mode="non_zero")
+    for point in points:
+        path.line_to(point)
+    path.close()
+    path.move_to(points2[0])
+    for point in points2[1:]:
+        path.line_to(point)
+    path.close()
 
-    return Group([kernel1, kernel2])
+    return path
 
 
 def convert_latex_font_size(latex_font_size: FontSize) -> float:
@@ -412,7 +406,6 @@ def pdf_to_svg(pdf_path: str, svg_path: str) -> None:
         f.write(svg)
 
 
-
 @dataclass
 class TagFrame:
     """Frame objects are used with Tag objects to create boxes.
@@ -522,9 +515,7 @@ def wrap_tag_lines(
         return paragraphs
     lines: list[str] = []
     for paragraph in paragraphs:
-        lines.extend(
-            _wrap_tag_paragraph(paragraph, text_width, measure_width)
-        )
+        lines.extend(_wrap_tag_paragraph(paragraph, text_width, measure_width))
     return lines
 
 
@@ -1364,6 +1355,7 @@ class TextPath(Base):
 
     def __repr__(self) -> str:
         return f"TextPath({self.text})"
+
 
 def draw_cs_tiny(
     canvas: Any,

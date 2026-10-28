@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from functools import cache
 from math import pi, radians, sin
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Self
@@ -728,6 +729,7 @@ def lines(self: Canvas, points: Sequence[PointType], **kwargs: object) -> Self:
     return self
 
 
+@cache
 def _measure_latex_formula(
     formula: str,
     font_size: int,
@@ -735,6 +737,9 @@ def _measure_latex_formula(
     bold: bool,
 ) -> tuple[float, float]:
     """Return the rendered size of a math formula.
+
+    The same formula, font size, font family, and bold flag are measured
+    once.
 
     Args:
         formula: LaTeX math string without surrounding dollar signs.
@@ -744,6 +749,15 @@ def _measure_latex_formula(
 
     Returns:
         tuple[float, float]: Width and height in points.
+
+    Examples:
+        >>> from simetri.render.draw import _measure_latex_formula
+        >>> _measure_latex_formula.cache_clear()
+        >>> size = _measure_latex_formula("x", 10, None, False)
+        >>> _measure_latex_formula("x", 10, None, False) == size
+        True
+        >>> _measure_latex_formula.cache_info().hits
+        1
     """
     import io
     import re

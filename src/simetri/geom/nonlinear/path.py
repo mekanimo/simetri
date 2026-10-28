@@ -61,6 +61,7 @@ from .bezier import Bezier
 from .ellipse import (
     _elliptic_arc_points_from_signed,
     ellipse_tangent,
+    get_ellipse_t_for_angle,
     resolve_arc_sweep,
 )
 from .hobby import hobby_shape
@@ -393,7 +394,7 @@ class Path2D(Group, CommonStyle):
             self.objects.append(Shape(data))
             self.cur_shape.append(data[1])
         elif op_type == PO.SEGMENTS:
-            self.objects.append(Shape(data[1]))
+            self.objects.append(Shape([data[0], *data[1]]))
             self.cur_shape.extend(data[1])
         elif op_type in _SINE_PATH_OPS:
             self.objects.append(Shape(data[0]))
@@ -1067,6 +1068,8 @@ class Path2D(Group, CommonStyle):
             >>> p = sg.Path2D((0, 0)).segments([(20, 0), (20, 20)])
             >>> p.pos
             (20, 20)
+            >>> [[round(c, 6) for c in q[:2]] for q in p.vertices]
+            [[0.0, 0.0], [20.0, 0.0], [20.0, 20.0]]
 """
 
         self._add(
@@ -1512,7 +1515,10 @@ class Path2D(Group, CommonStyle):
             rot_angle: Ellipse rotation in radians. Defaults to 0.
             n_points: Sample count; defaults to ``runtime_defaults['n_arc_points']``.
             end_angle: Ending angle in radians. Mutually exclusive with
-                ``span_angle``.
+                ``span_angle``. A full turn is drawn only when
+                ``abs(start_angle - end_angle)`` is one turn (``2π``).
+                Equal angles, including ``0`` and ``2π``, do not draw
+                a full circle.
             clockwise: If True, the arc is drawn clockwise. Defaults to False.
             **kwargs: Style overrides applied to the segment. ``name`` labels the operation.
 
@@ -1527,21 +1533,60 @@ class Path2D(Group, CommonStyle):
             >>> p = sg.Path2D((40, 0), angle=0).arc(40, 40, 0, -sg.pi / 2)
             >>> round(float(p.pos[0]), 5) or 0.0, round(float(p.pos[1]), 5)
             (0.0, -40.0)
+            >>> p = sg.Path2D((40, 0), angle=0).arc(40, 40, 0, end_angle=0)
+            >>> max(abs(float(v[1])) for v in p.all_vertices) < 1e-6
+            True
+            >>> p = sg.Path2D((40, 0), angle=0)
+            >>> _ = p.arc(40, 40, 2 * sg.pi, end_angle=2 * sg.pi)
+            >>> max(abs(float(v[1])) for v in p.all_vertices) < 1e-6
+            True
+            >>> p = sg.Path2D((40, 0), angle=0)
+            >>> _ = p.arc(40, 40, 0, end_angle=2 * sg.pi)
+            >>> p.all_vertices[1][1] > 0
+            True
+            >>> p = sg.Path2D((40, 0), angle=0)
+            >>> _ = p.arc(40, 40, 0, end_angle=-2 * sg.pi)
+            >>> p.all_vertices[1][1] < 0
+            True
 """
         if radius_y is None:
             radius_y = radius_x
         rx = radius_x
         ry = radius_y
-        start_angle = positive_angle(start_angle)
-        signed_span = resolve_arc_sweep(
-            start_angle, span_angle, end_angle, clockwise
-        )
+        raw_start = start_angle
+        if end_angle is not None and span_angle is None:
+            two_pi = 2 * pi
+            delta = end_angle - raw_start
+            if isclose(abs(delta), two_pi):
+                signed_span = -two_pi if clockwise else delta
+            else:
+                start_norm = positive_angle(raw_start)
+                end_norm = positive_angle(end_angle)
+                if clockwise:
+                    sweep = (start_norm - end_norm) % two_pi
+                else:
+                    sweep = (end_norm - start_norm) % two_pi
+                signed_span = -sweep if clockwise else sweep
+            start_angle = positive_angle(raw_start)
+        else:
+            start_angle = positive_angle(start_angle)
+            signed_span = resolve_arc_sweep(
+                start_angle, span_angle, end_angle, clockwise
+            )
         clockwise = signed_span < 0
         if n_points is None:
             n_points = runtime_defaults["n_arc_points"]
-        points = _elliptic_arc_points_from_signed(
-            (0, 0), rx, ry, start_angle, signed_span, n_points
-        )
+        # A clockwise full turn is the reverse of the counterclockwise
+        # samples. The shared sampler pads that case with the start point.
+        if signed_span < 0 and isclose(abs(signed_span), 2 * pi):
+            points = _elliptic_arc_points_from_signed(
+                (0, 0), rx, ry, start_angle, abs(signed_span), n_points
+            )
+            points = points[::-1]
+        else:
+            points = _elliptic_arc_points_from_signed(
+                (0, 0), rx, ry, start_angle, signed_span, n_points
+            )
         start = points[0]
         end = points[-1]
         # Translate the start to the current position and rotate by the rotation angle.
@@ -2173,11 +2218,67 @@ def path2d_to_svg_path(path2d: Path2D) -> str:
         >>> d = path2d_to_svg_path(sg.Path2D((0, 0)).line_to((40, 0)))
         >>> d.startswith("M")
         True
+        >>> full = sg.Path2D((40, 0), angle=0)
+        >>> _ = full.arc(40, 40, 0, end_angle=2 * sg.pi)
+        >>> path2d_to_svg_path(full).count(" A ")
+        2
+        >>> back = sg.Path2D((40, 0), angle=0)
+        >>> _ = back.arc(40, 40, 0, end_angle=-2 * sg.pi)
+        >>> path2d_to_svg_path(back).count(" A ")
+        2
     """
 
     def fmt(val: float) -> str:
         """Format a float to a string with 3 decimal places."""
         return f"{val:.3f}".rstrip("0").rstrip(".")
+
+    def arc_commands(
+        rx: float,
+        ry: float,
+        rot_angle: float,
+        start_angle: float,
+        span: float,
+        points,
+    ) -> list[str]:
+        """SVG ``A`` commands for one elliptic arc.
+
+        SVG omits an arc whose end is the start. A full turn is two
+        semicircles through the opposite point of the ellipse.
+        """
+        sweep = 1 if span > 0 else 0
+        abs_span = abs(float(span))
+        rot = degrees(rot_angle)
+        end = points[-1]
+        turn_error = abs(abs_span / (2 * pi) - round(abs_span / (2 * pi)))
+        if abs_span <= pi or turn_error > 1e-4:
+            large_arc = 1 if abs_span > pi else 0
+            return [
+                f"A {fmt(rx)} {fmt(ry)} {fmt(rot)} {large_arc} {sweep} "
+                f"{fmt(end[0])},{fmt(end[1])}"
+            ]
+        turns = max(1, int(round(abs_span / (2 * pi))))
+        t0 = get_ellipse_t_for_angle(start_angle, rx, ry)
+        local_x = rx * cos(t0)
+        local_y = ry * sin(t0)
+        cos_rot = cos(rot_angle)
+        sin_rot = sin(rot_angle)
+        offset_x = cos_rot * local_x - sin_rot * local_y
+        offset_y = sin_rot * local_x + cos_rot * local_y
+        start_x = float(points[0][0])
+        start_y = float(points[0][1])
+        mid_x = start_x - 2 * offset_x
+        mid_y = start_y - 2 * offset_y
+        commands = []
+        for _ in range(turns):
+            commands.append(
+                f"A {fmt(rx)} {fmt(ry)} {fmt(rot)} 0 {sweep} "
+                f"{fmt(mid_x)},{fmt(mid_y)}"
+            )
+            commands.append(
+                f"A {fmt(rx)} {fmt(ry)} {fmt(rot)} 0 {sweep} "
+                f"{fmt(end[0])},{fmt(end[1])}"
+            )
+        return commands
 
     parts = [f"M {fmt(path2d.start[0])},{fmt(path2d.start[1])}"]
 
@@ -2221,14 +2322,12 @@ def path2d_to_svg_path(path2d: Path2D) -> str:
 
         elif st in _ARC_PATH_OPS:
             rx, ry = data[2], data[3]
+            start_angle = data[4]
             span = data[5]
-            rot = degrees(data[6])
+            rot_angle = data[6]
             points = data[7]
-            end = points[-1]
-            large_arc = 1 if abs(span) > pi else 0
-            sweep = 1 if span > 0 else 0
-            parts.append(
-                f"A {fmt(rx)} {fmt(ry)} {fmt(rot)} {large_arc} {sweep} {fmt(end[0])},{fmt(end[1])}"
+            parts.extend(
+                arc_commands(rx, ry, rot_angle, start_angle, span, points)
             )
 
         elif st == PO.CLOSE:

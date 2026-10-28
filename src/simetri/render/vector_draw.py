@@ -5,9 +5,10 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from simetri.base.all_enums import MarkerType
+from simetri.base.all_enums import MarkerType, Types
 from simetri.base.common import PointType
 from simetri.config.settings import runtime_defaults
+from simetri.geom.geom_utils import close_points_square
 from simetri.geom.vectors import Vector
 from simetri.group.batch import Group
 from simetri.helpers.arrows import Arrow, vec_arrow
@@ -279,8 +280,8 @@ def is_vector_marker_shape(
         draw_kwargs: Style and placement keyword arguments.
 
     Returns:
-        bool: True when ``item`` is a ``Shape`` and its marker type is
-        ``MarkerType.VECTOR``.
+        bool: True when ``item`` is a ``Shape`` or ``Path2D`` and its
+        marker type is ``MarkerType.VECTOR``.
 
     Examples:
         >>> import simetri.graphics as sg
@@ -295,8 +296,14 @@ def is_vector_marker_shape(
         True
         >>> is_vector_marker_shape(sg.Vector(40, 0), {})
         False
+        >>> path = sg.Path2D((0, 0)).line_to((40, 0))
+        >>> is_vector_marker_shape(path, {"marker_type": sg.MarkerType.VECTOR})
+        True
     """
-    if not isinstance(item, Shape):
+    if not (
+        isinstance(item, Shape)
+        or (isinstance(item, Group) and item.subtype == Types.PATH2D)
+    ):
         return False
     if "marker_type" in draw_kwargs:
         marker_type = draw_kwargs["marker_type"]
@@ -310,17 +317,18 @@ def is_vector_marker_shape(
 
 def draw_vector_marker_shape(
     canvas: Any,
-    shape: Shape,
+    shape: Shape | Group,
     draw_kwargs: Mapping[str, Any],
 ) -> None:
     """Draw a shape's edges as vectors, and its body when that is requested.
 
-    The canvas sketch matrix is already set. ``pos``, ``angle``, and
-    ``scale`` are not applied again.
+    A ``Path2D`` uses the same arrow for each subpath edge. The canvas
+    sketch matrix is already set. ``pos``, ``angle``, and ``scale`` are
+    not applied again.
 
     Args:
         canvas: Canvas that receives the sketches (mutated).
-        shape: Shape whose edges are drawn as vectors.
+        shape: Shape or Path2D whose edges are drawn as vectors.
         draw_kwargs: Style and placement keyword arguments.
 
     Examples:
@@ -334,6 +342,15 @@ def draw_vector_marker_shape(
         ...     {"marker_type": sg.MarkerType.VECTOR},
         ... )
         >>> canvas.active_page.sketches[-2].vertices
+        [(0.0, 0.0), (40.0, 0.0)]
+        >>> path = sg.Path2D((0, 0), angle=0, fill=False).forward(40)
+        >>> path_canvas = sg.Canvas()
+        >>> draw_vector_marker_shape(
+        ...     path_canvas,
+        ...     path,
+        ...     {"marker_type": sg.MarkerType.VECTOR},
+        ... )
+        >>> path_canvas.active_page.sketches[-2].vertices
         [(0.0, 0.0), (40.0, 0.0)]
     """
     from simetri.render.draw import draw as draw_item
@@ -373,14 +390,27 @@ def draw_vector_marker_shape(
     ):
         if key in vector_kwargs:
             del vector_kwargs[key]
-    for edge in shape.edges:
-        start_x, start_y = edge[0][:2]
-        end_x, end_y = edge[1][:2]
-        start = (start_x, start_y)
-        end = (end_x, end_y)
-        draw_vector(
-            canvas,
-            Vector(start, end),
-            vec_start=start,
-            **vector_kwargs,
-        )
+    if shape.subtype == Types.PATH2D:
+        edge_sources = [
+            element for element in shape if isinstance(element, Shape)
+        ]
+    else:
+        edge_sources = [shape]
+    for source in edge_sources:
+        edges = source.edges
+        if source is not shape and source.closed and edges:
+            vertices = source.vertices
+            abs_tol2 = runtime_defaults["abs_tol"] ** 2
+            if close_points_square(vertices[0], vertices[-1], abs_tol2):
+                edges = edges[:-1]
+        for edge in edges:
+            start_x, start_y = edge[0][:2]
+            end_x, end_y = edge[1][:2]
+            start = (start_x, start_y)
+            end = (end_x, end_y)
+            draw_vector(
+                canvas,
+                Vector(start, end),
+                vec_start=start,
+                **vector_kwargs,
+            )

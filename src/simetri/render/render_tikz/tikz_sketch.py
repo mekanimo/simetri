@@ -701,12 +701,13 @@ def draw_shape_sketch_with_markers(
     else:
         marker_options = ""
 
-    if sketch.closed and not close_points_square(
-        sketch.vertices[0], sketch.vertices[-1]
-    ):
-        vertices = [str(x) for x in sketch.vertices + [sketch.vertices[0]]]
-    else:
-        vertices = [str(x) for x in sketch.vertices]
+    points = list(sketch.vertices)
+    if len(points) > 1 and close_points_square(points[0], points[-1]):
+        points = points[:-1]
+    vertices = [str(point) for point in points]
+    cycle = ""
+    if sketch.closed and "smooth cycle" not in body:
+        cycle = " -- cycle"
 
     str_lines = [vertices[0]]
     for i, vertex in enumerate(vertices[1:]):
@@ -727,7 +728,9 @@ def draw_shape_sketch_with_markers(
             # Draw the path first (if not markers_only)
             if not sketch.markers_only:
                 if body:
-                    body += f" plot coordinates {{{coordinates}}};\n"
+                    body += (
+                        f" plot coordinates {{{coordinates}}}{cycle};\n"
+                    )
                 else:
                     body = f"\\draw plot coordinates {{{coordinates}}};\n"
 
@@ -754,12 +757,15 @@ def draw_shape_sketch_with_markers(
     if sketch.draw_markers and marker_options:
         body += (
             f" plot[mark = {marker}, {markers_only}mark options = {{{marker_options}}}] "
-            f"\ncoordinates {{{coordinates}}};\n"
+            f"\ncoordinates {{{coordinates}}}{cycle};\n"
         )
     elif sketch.draw_markers:
-        body += f" plot[mark = {marker}, {markers_only}] coordinates {{{coordinates}}};\n"
+        body += (
+            f" plot[mark = {marker}, {markers_only}] "
+            f"coordinates {{{coordinates}}}{cycle};\n"
+        )
     else:
-        body += f" plot[tension=.5] coordinates {{{coordinates}}};\n"
+        body += f" plot[tension=.5] coordinates {{{coordinates}}}{cycle};\n"
 
     return body
 

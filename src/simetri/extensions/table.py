@@ -541,6 +541,23 @@ def _split_style_kwargs(kwargs: dict[str, Any]) -> tuple[dict[str, Any], dict[st
     return format_kwargs, background_kwargs
 
 
+def _require_stripe_colors(colors: Sequence[Color]) -> None:
+    if isinstance(colors, (str, bytes)) or not isinstance(colors, Sequence):
+        raise TypeError("colors must be a sequence of colors")
+    if len(colors) < 2:
+        raise ValueError("colors must contain two or more colors")
+
+
+def _single_or_list(values: list[float]) -> float | list[float] | None:
+    if not values:
+        return None
+    first = values[0]
+    for value in values[1:]:
+        if value != first:
+            return list(values)
+    return first
+
+
 class Range:
     """Rectangular grid region (inclusive bounds, 0-based grid indices).
 
@@ -763,13 +780,21 @@ class Range:
             self.cell.content = value
             return
         if name == "width":
+            if self._size_axis == "rows":
+                raise AttributeError("row width is read-only")
             self._assign_width(value)
             return
         if name == "height":
+            if self._size_axis == "columns":
+                raise AttributeError("column height is read-only")
             self._assign_height(value)
             return
         if name == "size":
             width, height = value[:2]
+            if self._size_axis == "rows":
+                raise AttributeError("row width is read-only")
+            if self._size_axis == "columns":
+                raise AttributeError("column height is read-only")
             self._assign_width(width)
             self._assign_height(height)
             return
@@ -990,36 +1015,24 @@ class Range:
             self._table._rows[grid_row]._height = row_height
         self._table._invalidate_layout()
 
-    def _common_column_width(self) -> float | None:
-        first = None
-        saw_value = False
-        for col_index in self._grid_col_indices():
-            current = self._table._columns[col_index]._width
-            if not saw_value:
-                first = current
-                saw_value = True
-            elif current != first:
-                return None
-        if not saw_value:
-            return None
-        return first
+    def _laid_out_column_widths(self) -> list[float]:
+        column_widths, _, _ = compute_table_layout(self._table)
+        return [
+            column_widths[column_index]
+            for column_index in self._grid_col_indices()
+        ]
 
-    def _stored_grid_row_height(self, grid_row: int) -> float | None:
-        return self._table._rows[grid_row]._height
+    def _laid_out_row_heights(self) -> list[float]:
+        _, row_heights, _ = compute_table_layout(self._table)
+        return [
+            row_heights[grid_row] for grid_row in self._grid_row_indices()
+        ]
 
-    def _common_row_height(self) -> float | None:
-        first = None
-        saw_value = False
-        for grid_row in self._grid_row_indices():
-            current = self._stored_grid_row_height(grid_row)
-            if not saw_value:
-                first = current
-                saw_value = True
-            elif current != first:
-                return None
-        if not saw_value:
-            return None
-        return first
+    def _common_column_width(self) -> float | list[float] | None:
+        return _single_or_list(self._laid_out_column_widths())
+
+    def _common_row_height(self) -> float | list[float] | None:
+        return _single_or_list(self._laid_out_row_heights())
 
     @property
     def b_box(self) -> BoundingBox:
@@ -1268,6 +1281,16 @@ def compute_table_layout(
         >>> square = Table(size=(2, 2), column_width=30, row_height=30, padding=0)
         >>> compute_table_layout(square)
         ([30, 30], [30, 30], 2)
+        >>> chosen = Table(size=(1, 1), padding=0, show_header=False)
+        >>> chosen.cell(0, 0).content = "MMMMMMMMMM"
+        >>> chosen.columns[0].width > 10
+        True
+        >>> chosen.columns[0].width = 10
+        >>> chosen.columns[0].width
+        10.0
+        >>> chosen.rows[0].height = 8
+        >>> chosen.rows[0].height
+        8.0
     """
     cache_key = _table_layout_cache_key(table)
     if (
@@ -1309,12 +1332,12 @@ def compute_table_layout(
     for col_index in range(column_count):
         width = table._columns[col_index]._width
         if width is not None:
-            col_widths[col_index] = max(col_widths[col_index], width)
+            col_widths[col_index] = width
 
     for grid_row in range(grid_row_count):
         height = table._rows[grid_row]._height
         if height is not None:
-            row_heights[grid_row] = max(row_heights[grid_row], height)
+            row_heights[grid_row] = height
 
     if table.min_width is not None:
         total = sum(col_widths)
@@ -2318,10 +2341,34 @@ class Table:
     def columns(self) -> Range:
         """``Range`` over the grid; ``width`` sets column widths.
 
+        Reading ``width`` returns the laid-out column width. ``height`` is
+        the laid-out row heights covered by the column and is read-only.
+        Several different sizes are returned as a list.
+
         Examples:
             >>> table = Table(columns=["A", "B"])
             >>> table.columns._size_axis
             'columns'
+            >>> fixed = Table(
+            ...     size=(1, 1),
+            ...     column_width=30,
+            ...     row_height=20,
+            ...     padding=0,
+            ...     show_header=False,
+            ... )
+            >>> fixed.columns[0].width
+            30
+            >>> fixed.columns[0].height
+            20
+            >>> varied = Table(size=(2, 1), padding=0, show_header=False)
+            >>> varied.rows[0].height = 15
+            >>> varied.rows[1].height = 25
+            >>> varied.columns[0].height
+            [15.0, 25.0]
+            >>> varied.columns[0].height = 10
+            Traceback (most recent call last):
+            ...
+            AttributeError: column height is read-only
         """
         column_count, grid_row_count = _grid_dimensions(self)
         if column_count == 0 or grid_row_count == 0:
@@ -2352,7 +2399,10 @@ class Table:
         """``Range`` over every grid row; ``height`` sets row heights.
 
         ``table.rows[i]`` uses the same row index as ``table.cells[i]``.
-        Row ``0`` is the first grid row.
+        Row ``0`` is the first grid row. Reading ``height`` returns the
+        laid-out row height. ``width`` is the laid-out column widths
+        covered by the row and is read-only. Several different sizes are
+        returned as a list.
 
         Examples:
             >>> table = Table(columns=["A"])
@@ -2361,6 +2411,26 @@ class Table:
             'rows'
             >>> table.rows[0].content
             'A'
+            >>> fixed = Table(
+            ...     size=(1, 1),
+            ...     column_width=30,
+            ...     row_height=20,
+            ...     padding=0,
+            ...     show_header=False,
+            ... )
+            >>> fixed.rows[0].height
+            20
+            >>> fixed.rows[0].width
+            30
+            >>> varied = Table(size=(1, 2), padding=0, show_header=False)
+            >>> varied.columns[0].width = 40
+            >>> varied.columns[1].width = 70
+            >>> varied.rows[0].width
+            [40.0, 70.0]
+            >>> varied.rows[0].width = 10
+            Traceback (most recent call last):
+            ...
+            AttributeError: row width is read-only
         """
         column_count, grid_row_count = _grid_dimensions(self)
         if column_count == 0 or grid_row_count == 0:
@@ -2707,6 +2777,104 @@ class Table:
             color,
         )
         self._invalidate_layout()
+        return self
+
+    def column_stripes(self, start: int, colors: Sequence[Color]) -> Self:
+        """Paint columns from ``start`` with repeating background colors.
+
+        Column ``start`` receives ``colors[0]``, the next column
+        ``colors[1]``, and so on. After the last color, the sequence
+        repeats. Columns before ``start`` are left unchanged.
+
+        Args:
+            start: First column index, 0-based.
+            colors: Two or more background colors.
+
+        Returns:
+            Self: This table.
+
+        Raises:
+            IndexError: If ``start`` is outside the columns.
+            TypeError: If ``colors`` is not a sequence of colors.
+            ValueError: If ``colors`` has fewer than two colors.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> table = sg.Table(size=(1, 4), show_header=False)
+            >>> _ = table.column_stripes(0, [sg.red, sg.blue, sg.green])
+            >>> colors = [
+            ...     table.column(index)._background["fill_color"]
+            ...     for index in range(4)
+            ... ]
+            >>> colors == [sg.red, sg.blue, sg.green, sg.red]
+            True
+            >>> table.column(0)._background["fill"]
+            True
+            >>> skipped = sg.Table(size=(1, 3), show_header=False)
+            >>> _ = skipped.column_stripes(1, [sg.red, sg.blue])
+            >>> skipped.column(0)._background
+            {}
+            >>> skipped.column(1)._background["fill_color"] == sg.red
+            True
+        """
+        _require_stripe_colors(colors)
+        column_count = len(self._columns)
+        if start < 0 or start >= column_count:
+            raise IndexError(f"column index {start} out of range")
+        for offset, column_index in enumerate(range(start, column_count)):
+            self.column(column_index).set_background(
+                fill=True,
+                fill_color=colors[offset % len(colors)],
+            )
+        return self
+
+    def row_stripes(self, start: int, colors: Sequence[Color]) -> Self:
+        """Paint rows from ``start`` with repeating background colors.
+
+        Row ``start`` receives ``colors[0]``, the next row ``colors[1]``,
+        and so on. After the last color, the sequence repeats. Rows before
+        ``start`` are left unchanged. ``from_bottom_left`` numbers from
+        the bottom.
+
+        Args:
+            start: First row index, 0-based.
+            colors: Two or more background colors.
+
+        Returns:
+            Self: This table.
+
+        Raises:
+            IndexError: If ``start`` is outside the rows.
+            TypeError: If ``colors`` is not a sequence of colors.
+            ValueError: If ``colors`` has fewer than two colors.
+
+        Examples:
+            >>> import simetri.graphics as sg
+            >>> table = sg.Table(size=(3, 1), show_header=False)
+            >>> _ = table.row_stripes(1, [sg.red, sg.blue])
+            >>> table.row(0)._background
+            {}
+            >>> table.row(1)._background["fill_color"] == sg.red
+            True
+            >>> table.row(2)._background["fill_color"] == sg.blue
+            True
+            >>> table.row(1)._background["fill"]
+            True
+            >>> short = sg.Table(size=(2, 1), show_header=False)
+            >>> short.row_stripes(0, [sg.red])
+            Traceback (most recent call last):
+            ...
+            ValueError: colors must contain two or more colors
+        """
+        _require_stripe_colors(colors)
+        row_count = len(self._rows)
+        if start < 0 or start >= row_count:
+            raise IndexError(f"row index {start} out of range")
+        for offset, row_index in enumerate(range(start, row_count)):
+            self.row(row_index).set_background(
+                fill=True,
+                fill_color=colors[offset % len(colors)],
+            )
         return self
 
     def _apply_header_format(self) -> None:

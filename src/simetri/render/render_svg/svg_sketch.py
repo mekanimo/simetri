@@ -258,6 +258,48 @@ def draw_arc_sketch(
     )
 
 
+_PATH_POINT = r"([-+]?(?:\d+\.\d+|\d+))"
+_SUBPATH_START = re.compile(rf"^M\s+{_PATH_POINT},{_PATH_POINT}")
+_POINT_BEFORE_CLOSE = re.compile(rf"{_PATH_POINT},{_PATH_POINT}\s+Z\s*$")
+
+
+def _path_data_for_closed_markers(path_data: str) -> str:
+    """Drop a zero-length ``Z`` when the subpath already ends on its start.
+
+    The closing vertex is the same point as the first vertex. Leaving ``Z``
+    there gives that point a second marker.
+    """
+    pieces = []
+    for piece in re.split(r"(?=M )", path_data.strip()):
+        text = piece.strip()
+        if not text:
+            continue
+        start = _SUBPATH_START.match(text)
+        end = _POINT_BEFORE_CLOSE.search(text)
+        if start is not None and end is not None:
+            start_point = (float(start.group(1)), float(start.group(2)))
+            end_point = (float(end.group(1)), float(end.group(2)))
+            if close_points_square(start_point, end_point):
+                text = re.sub(r"\s+Z\s*$", "", text)
+        pieces.append(text)
+    return " ".join(pieces)
+
+
+def _svg_marker_attr(marker_id: str, closed: bool) -> str:
+    """Return marker references for one path.
+
+    A closed path does not set ``marker-end``. That vertex is the first
+    vertex, which already has ``marker-start``.
+    """
+    attr = (
+        f' marker-start="url(#{marker_id})"'
+        f' marker-mid="url(#{marker_id})"'
+    )
+    if not closed:
+        attr += f' marker-end="url(#{marker_id})"'
+    return attr
+
+
 def draw_path_sketch(
     sketch: PathSketch,
     exceptions: Collection[str] | None = None,
@@ -313,9 +355,18 @@ def draw_path_sketch(
     if style:
         style_attr = f' style="{style}"'
 
+    marker_attr = ""
+    if sketch_attrib(sketch, "draw_markers"):
+        marker_type = sketch_attrib(sketch, "marker_type")
+        if marker_type not in (MarkerType.EMPTY, MarkerType.INDICES):
+            marker_id = f"marker_{sketch_attrib(sketch, 'id')}"
+            if closed:
+                path_data = _path_data_for_closed_markers(path_data)
+            marker_attr = _svg_marker_attr(marker_id, closed)
+
     path_svg = (
         f'<path d="{path_data}"{class_attr}{style_attr}'
-        f"{fill_attr}{fill_rule_attr} />"
+        f"{fill_attr}{fill_rule_attr}{marker_attr} />"
     )
 
     elements = [path_svg]
@@ -361,7 +412,8 @@ def draw_path_sketch(
     if len(elements) == 1:
         return (
             f'<path d="{path_data}"{class_attr}{style_attr}'
-            f"{fill_attr}{fill_rule_attr}{clip_attr}{mask_attr} />"
+            f"{fill_attr}{fill_rule_attr}{marker_attr}"
+            f"{clip_attr}{mask_attr} />"
         )
 
     content = "\n".join(elements)
@@ -1256,13 +1308,9 @@ def draw_shape_sketch_with_markers(
             f'stroke-opacity="{line_alpha}" fill={fill_str}{fill_rule_attr} '
         )
         if has_marker_symbol:
-            path_element += (
-                f'marker-start="url(#{marker_id})" '
-                f'marker-mid="url(#{marker_id})" '
-                f'marker-end="url(#{marker_id})"/>'
-            )
-        else:
-            path_element += "/>"
+            path_element += _svg_marker_attr(marker_id, bool(closed)).lstrip()
+            path_element += " "
+        path_element += "/>"
 
         clip_attr, mask_attr = get_clip_mask_attrs(sketch)
         if clip_attr or mask_attr:
@@ -1276,7 +1324,14 @@ def draw_shape_sketch_with_markers(
         if not has_marker_symbol:
             return ""
 
-        for v in vertices:
+        marker_vertices = vertices
+        if (
+            closed
+            and len(vertices) > 1
+            and close_points_square(vertices[0], vertices[-1])
+        ):
+            marker_vertices = list(vertices)[:-1]
+        for v in marker_vertices:
             x, y = v[0], v[1]
             elements.append(
                 f'<path d="M {x},{y} L {x},{y}" stroke="none" fill="none" '
