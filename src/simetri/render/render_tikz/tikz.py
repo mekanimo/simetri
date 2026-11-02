@@ -227,7 +227,16 @@ def get_tex_code(
         str: The TikZ code.
 
     Examples:
-        >>> get_tex_code  # doctest: +SKIP
+        >>> import simetri.graphics as sg
+        >>> canvas = sg.Canvas()
+        >>> table = sg.Table(title="Arcs")
+        >>> table.title.font_family = "arial"
+        >>> _ = canvas.draw(table)
+        >>> tex = get_tex_code(canvas)
+        >>> "fontspec" in tex
+        True
+        >>> "\\\\newfontfamily\\\\arial" in tex
+        True
     """
 
     render_style_ids = {}
@@ -392,11 +401,7 @@ def get_tex_code(
                 elif sketch.subtype == Types.COMPOSITE_SKETCH:
                     sketches_to_populate.extend(sketch.sketches)
                 elif sketch.subtype == Types.TABLE_SKETCH:
-                    sketches_to_populate.extend(
-                        child
-                        for child in sketch.sketches
-                        if child.subtype in _STYLEABLE_SUBTYPES
-                    )
+                    sketches_to_populate.extend(sketch.sketches)
                 elif (
                     sketch.subtype == Types.HELPLINES_SKETCH
                     or sketch.subtype == Types.LINE_SKETCH

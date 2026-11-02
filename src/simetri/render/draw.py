@@ -20,6 +20,7 @@ from ..base.all_enums import (
     SvgLoc,
     TexLoc,
     Types,
+    WarningType,
     drawable_types,
     get_enum_value,
 )
@@ -32,7 +33,7 @@ from ..coloring.colors import (
     change_lightness,
     shade_value,
 )
-from ..config.settings import runtime_defaults
+from ..config.settings import issue_warning, runtime_defaults
 from ..geom.affine import (
     rotation_matrix,
     translation_matrix,
@@ -2958,8 +2959,8 @@ def draw_vector(self: Canvas, item: Vector, **kwargs: object) -> Self:
     """Draw a vector as an arrow.
 
     Args:
-        item: Vector to draw. Tail is at the origin unless ``vec_start``
-            or ``vec_end`` is given.
+        item: Vector to draw from its start point to its end point.
+            ``vec_start`` and ``vec_end`` replace those points.
         **kwargs: Placement and style arguments. ``shaft_`` and ``head_``
             names style those parts. ``color`` and ``alpha`` style both.
 
@@ -2981,6 +2982,125 @@ def draw_vector(self: Canvas, item: Vector, **kwargs: object) -> Self:
     vector_draw.prepare_vector_batch(batch, kwargs, draw_pos)
     arrow, part_kwargs = vector_draw.drawable_for_item(item, kwargs)
     return draw(self, arrow, **part_kwargs)
+
+
+_NAME_TAG_ARGS = frozenset(
+    {"bold", "font_color", "font_family", "font_size", "italic"}
+)
+_NAME_TAG_KWARGS = frozenset(
+    {
+        "font_alpha",
+        "font_blend_mode",
+        "old_style_nums",
+        "overline",
+        "small_caps",
+        "strike_through",
+        "underline",
+    }
+)
+
+
+def _name_offset(draw_kwargs: dict[str, object]) -> tuple[float, float]:
+    """Return ``(dx, dy)`` from ``name_offset``, or ``(0, 0)``."""
+    if "name_offset" not in draw_kwargs:
+        return 0.0, 0.0
+    offset = draw_kwargs["name_offset"]
+    if (
+        isinstance(offset, str)
+        or not isinstance(offset, Sequence)
+        or len(offset) != 2
+    ):
+        raise ValueError("name_offset must be (dx, dy).")
+    return float(offset[0]), float(offset[1])
+
+
+def _only_drawn_shape(item: object, draw_items: object) -> bool:
+    """Return whether ``item`` is the only ``Shape`` in the draw call."""
+    if not isinstance(draw_items, Sequence) or isinstance(draw_items, str):
+        return False
+    shape_count = 0
+    for entry in draw_items:
+        if isinstance(entry, Shape):
+            shape_count += 1
+    return shape_count == 1 and isinstance(item, Shape)
+
+
+def _shape_name_text(
+    item: object,
+    draw_kwargs: dict[str, object],
+    draw_items: object,
+) -> str | None:
+    """Return the name to draw, or None when ``names`` is not requested.
+
+    A shape whose ``name`` is None is skipped. If it is the only shape in
+    the draw call, a warning is issued.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> from simetri.render.draw import _shape_name_text
+        >>> shape = sg.Shape([(0, 0), (40, 0)], name="x")
+        >>> _shape_name_text(shape, {"names": True}, [shape])
+        'x'
+        >>> _shape_name_text(shape, {}, [shape]) is None
+        True
+        >>> blank = sg.Shape([(0, 0), (40, 0)])
+        >>> other = sg.Shape([(0, 0), (10, 0)], name="b")
+        >>> _shape_name_text(blank, {"names": True}, [blank, other]) is None
+        True
+    """
+    if "names" not in draw_kwargs or draw_kwargs["names"] is False:
+        return None
+    if draw_kwargs["names"] is not True:
+        raise TypeError("canvas.draw names must be True or False.")
+    if not isinstance(item, Shape):
+        return None
+    label = item.name
+    if label is None:
+        if _only_drawn_shape(item, draw_items):
+            issue_warning(
+                "shape.name is None, so no name was drawn.",
+                warning_type=WarningType.canvas.missing_name,
+                stacklevel=5,
+            )
+        return None
+    if not isinstance(label, str):
+        raise TypeError("shape.name must be a string.")
+    _name_offset(draw_kwargs)
+    return label
+
+
+def _draw_shape_name(
+    canvas: Canvas,
+    item: Shape,
+    label: str,
+    draw_kwargs: dict[str, object],
+) -> None:
+    """Draw ``label`` at the shape midpoint plus ``name_offset``."""
+    dx, dy = _name_offset(draw_kwargs)
+    mid_x, mid_y = item.midpoint[:2]
+    pos = (mid_x + dx, mid_y + dy)
+    tag_args: dict[str, object] = {}
+    tag_kwargs: dict[str, object] = {}
+    for key, value in draw_kwargs.items():
+        if not key.startswith("name_"):
+            continue
+        suffix = key[len("name_") :]
+        if suffix in _NAME_TAG_ARGS:
+            tag_args[suffix] = value
+        elif suffix in _NAME_TAG_KWARGS:
+            tag_kwargs[suffix] = value
+    tag = Tag(
+        label,
+        pos,
+        anchor=Anchor.CENTER,
+        **tag_args,
+        **tag_kwargs,
+    )
+    tag.draw_frame = False
+    extend_vertices(canvas, tag)
+    sketch = create_sketch(tag, canvas)
+    if sketch is not None:
+        canvas.active_page.sketches.append(sketch)
 
 
 def draw(
@@ -3181,6 +3301,7 @@ def draw(
         hole_kwargs["non_zero"] = True
         draw(self, Group(rings), **hole_kwargs)
     elif subtype in regular_sketch_types:
+        shape_name = _shape_name_text(item, kwargs, draw_items)
         sketches = get_sketches(item, self, **kwargs)
         if sketches:
             active_sketches.extend(sketches)
@@ -3211,6 +3332,8 @@ def draw(
                         stroke=True,
                     )
                     draw(self, midpoint_markers)
+            if shape_name is not None:
+                _draw_shape_name(self, item, shape_name, kwargs)
     elif subtype == Types.IMAGE:
         draw_image(self, item, **kwargs)
     elif subtype == Types.PATTERN:
@@ -3374,6 +3497,49 @@ def get_sketches(
     return res
 
 
+def _check_index_start(index_start: object) -> None:
+    """Raise unless ``index_start`` is an integer.
+
+    Zero, negative, and positive integers are allowed.
+
+    Examples:
+        >>> from simetri.render.draw import _check_index_start
+        >>> _check_index_start(0)
+        >>> _check_index_start(-4)
+        >>> _check_index_start(1.5)
+        Traceback (most recent call last):
+            ...
+        TypeError: index_start must be an integer.
+    """
+    if isinstance(index_start, bool) or not isinstance(index_start, int):
+        raise TypeError("index_start must be an integer.")
+
+
+def _check_index_multiplier(index_multiplier: object) -> None:
+    """Raise unless ``index_multiplier`` is a positive or negative integer.
+
+    Examples:
+        >>> from simetri.render.draw import _check_index_multiplier
+        >>> _check_index_multiplier(-2)
+        >>> _check_index_multiplier(0)
+        Traceback (most recent call last):
+            ...
+        ValueError: index_multiplier must be a positive or negative integer.
+        >>> _check_index_multiplier(True)
+        Traceback (most recent call last):
+            ...
+        TypeError: index_multiplier must be an integer.
+    """
+    if isinstance(index_multiplier, bool) or not isinstance(
+        index_multiplier, int
+    ):
+        raise TypeError("index_multiplier must be an integer.")
+    if index_multiplier == 0:
+        raise ValueError(
+            "index_multiplier must be a positive or negative integer."
+        )
+
+
 _PRESEDENCE_KEYS = frozenset(
     (
         "color",
@@ -3394,7 +3560,9 @@ _NON_STYLE_KEYS = frozenset(
         "midpoints",
         "index_font_size",
         "vertex_font_size",
+        "index_multiplier",
         "index_offset",
+        "index_start",
         "vertex_offset",
         "index_font_color",
         "vertex_font_color",
@@ -3404,6 +3572,23 @@ _NON_STYLE_KEYS = frozenset(
         "vertex_on_hull",
         "_group_hull_points",
         "non_zero",
+    )
+) | frozenset(
+    (
+        "name_bold",
+        "name_font_alpha",
+        "name_font_blend_mode",
+        "name_font_color",
+        "name_font_family",
+        "name_font_size",
+        "name_italic",
+        "name_offset",
+        "name_old_style_nums",
+        "name_overline",
+        "name_small_caps",
+        "name_strike_through",
+        "name_underline",
+        "names",
     )
 )
 
@@ -3524,6 +3709,20 @@ def set_shape_sketch_style(
         sketch.vertex_font_size = kwargs["vertex_font_size"]
     elif "vertex_font_size" in item.__dict__:
         sketch.vertex_font_size = item.vertex_font_size
+
+    if "index_start" in kwargs:
+        _check_index_start(kwargs["index_start"])
+        sketch.index_start = kwargs["index_start"]
+    elif "index_start" in item.__dict__:
+        _check_index_start(item.index_start)
+        sketch.index_start = item.index_start
+
+    if "index_multiplier" in kwargs:
+        _check_index_multiplier(kwargs["index_multiplier"])
+        sketch.index_multiplier = kwargs["index_multiplier"]
+    elif "index_multiplier" in item.__dict__:
+        _check_index_multiplier(item.index_multiplier)
+        sketch.index_multiplier = item.index_multiplier
 
     if "index_offset" in kwargs:
         sketch.index_offset = kwargs["index_offset"]

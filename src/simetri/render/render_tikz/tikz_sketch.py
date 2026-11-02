@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Collection
 from dataclasses import dataclass
-from math import ceil, degrees
+from math import atan2, ceil, cos, degrees, hypot, pi, radians, sin
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -1041,6 +1042,271 @@ def draw_shape_sketch(
     return res
 
 
+_SVG_TOKEN = re.compile(
+    r"[A-Za-z]|[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?"
+)
+_SVG_ARG_COUNT = {
+    "M": 2,
+    "L": 2,
+    "H": 1,
+    "V": 1,
+    "C": 6,
+    "S": 4,
+    "Q": 4,
+    "T": 2,
+    "A": 7,
+    "Z": 0,
+}
+
+
+def _fmt_tikz_num(value: float) -> str:
+    return f"{value:.3f}".rstrip("0").rstrip(".")
+
+
+def _ellipse_arc_cubics(
+    x1: float,
+    y1: float,
+    rx: float,
+    ry: float,
+    phi_deg: float,
+    large: bool,
+    sweep_ccw: bool,
+    x2: float,
+    y2: float,
+) -> list[tuple[tuple[float, float], tuple[float, float], tuple[float, float]]]:
+    """Cubics for one elliptic arc in y-up coordinates.
+
+    ``sweep_ccw`` is the mathematical direction. A sweep of exactly half
+    a turn keeps that direction. PGF's ``\\pgfpatharcto`` loses it when the
+    chord is a diameter.
+
+    Examples:
+        >>> cubics = _ellipse_arc_cubics(0, 40, 15, 15, 0, False, False, 30, 40)
+        >>> cubics[0][0][1] > 40
+        True
+        >>> other = _ellipse_arc_cubics(30, 40, 15, 15, 0, False, True, 60, 40)
+        >>> other[0][0][1] < 40
+        True
+    """
+    if rx == 0 or ry == 0 or (x1 == x2 and y1 == y2):
+        return []
+    phi = radians(phi_deg)
+    cos_phi = cos(phi)
+    sin_phi = sin(phi)
+
+    def to_unit(x: float, y: float) -> tuple[float, float]:
+        xr = cos_phi * x + sin_phi * y
+        yr = -sin_phi * x + cos_phi * y
+        return xr / rx, yr / ry
+
+    def from_unit(u: float, v: float) -> tuple[float, float]:
+        return (
+            cos_phi * rx * u - sin_phi * ry * v,
+            sin_phi * rx * u + cos_phi * ry * v,
+        )
+
+    u1, v1 = to_unit(x1, y1)
+    u2, v2 = to_unit(x2, y2)
+    du = u2 - u1
+    dv = v2 - v1
+    dist = hypot(du, dv)
+    if dist <= 1e-12:
+        return []
+    radius = 1.0
+    if dist > 2.0:
+        radius = dist / 2.0
+    mid_u = (u1 + u2) / 2.0
+    mid_v = (v1 + v2) / 2.0
+    height = (radius * radius - (dist / 2.0) ** 2) ** 0.5
+    unit_x = -dv / dist
+    unit_y = du / dist
+    left = (mid_u + unit_x * height, mid_v + unit_y * height)
+    right = (mid_u - unit_x * height, mid_v - unit_y * height)
+    if sweep_ccw:
+        minor, major = left, right
+    else:
+        minor, major = right, left
+    center = major if large else minor
+    start_angle = atan2(v1 - center[1], u1 - center[0])
+    end_angle = atan2(v2 - center[1], u2 - center[0])
+    delta = end_angle - start_angle
+    if sweep_ccw and delta <= 0.0:
+        delta += 2.0 * pi
+    elif not sweep_ccw and delta >= 0.0:
+        delta -= 2.0 * pi
+    if large and abs(delta) <= pi:
+        delta += 2.0 * pi if delta > 0.0 else -2.0 * pi
+    elif not large and abs(delta) > pi:
+        delta += -2.0 * pi if delta > 0.0 else 2.0 * pi
+    curves = sg.circular_arc_beziers(center, radius, start_angle, delta)
+    cubics = []
+    for curve in curves:
+        _start, c1, c2, end = curve.control_points
+        cubics.append(
+            (
+                from_unit(float(c1[0]), float(c1[1])),
+                from_unit(float(c2[0]), float(c2[1])),
+                from_unit(float(end[0]), float(end[1])),
+            )
+        )
+    return cubics
+
+
+def _svg_path_for_tikz(path_data: str) -> str:
+    """Return ``path_data`` with arcs replaced by y-up cubics.
+
+    SVG draws this ``d`` string under a y-flip, so its sweep flags already
+    mean counterclockwise when the flag is ``1``. TikZ keeps y upward and
+    its arc command draws both halves of a diameter the same way.
+
+    Examples:
+        >>> path = _svg_path_for_tikz("M 0,40 A 15 15 0 0 0 30,40")
+        >>> "A " not in path
+        True
+        >>> "C " in path
+        True
+    """
+    if not re.search(r"[Aa]", path_data):
+        return path_data
+    tokens = _SVG_TOKEN.findall(path_data)
+    parts: list[str] = []
+    index = 0
+    command = ""
+    x = y = 0.0
+    sub_x = sub_y = 0.0
+
+    def take(count: int) -> list[float]:
+        nonlocal index
+        values = [float(tokens[index + offset]) for offset in range(count)]
+        index += count
+        return values
+
+    while index < len(tokens):
+        token = tokens[index]
+        if token.isalpha():
+            command = token
+            index += 1
+        elif command == "M":
+            command = "L"
+        elif command == "m":
+            command = "l"
+        if command == "":
+            break
+        absolute = command.isupper()
+        kind = command.upper()
+        count = _SVG_ARG_COUNT[kind]
+        if count:
+            args = take(count)
+        else:
+            args = []
+        if kind == "M":
+            nx, ny = args
+            if not absolute:
+                nx += x
+                ny += y
+            x, y = nx, ny
+            sub_x, sub_y = x, y
+            parts.append(f"M {_fmt_tikz_num(x)},{_fmt_tikz_num(y)}")
+        elif kind == "L":
+            nx, ny = args
+            if not absolute:
+                nx += x
+                ny += y
+            x, y = nx, ny
+            parts.append(f"L {_fmt_tikz_num(x)},{_fmt_tikz_num(y)}")
+        elif kind == "H":
+            nx = args[0] if absolute else x + args[0]
+            x = nx
+            parts.append(f"L {_fmt_tikz_num(x)},{_fmt_tikz_num(y)}")
+        elif kind == "V":
+            ny = args[0] if absolute else y + args[0]
+            y = ny
+            parts.append(f"L {_fmt_tikz_num(x)},{_fmt_tikz_num(y)}")
+        elif kind == "C":
+            c1x, c1y, c2x, c2y, nx, ny = args
+            if not absolute:
+                c1x += x
+                c1y += y
+                c2x += x
+                c2y += y
+                nx += x
+                ny += y
+            x, y = nx, ny
+            parts.append(
+                "C "
+                f"{_fmt_tikz_num(c1x)},{_fmt_tikz_num(c1y)} "
+                f"{_fmt_tikz_num(c2x)},{_fmt_tikz_num(c2y)} "
+                f"{_fmt_tikz_num(x)},{_fmt_tikz_num(y)}"
+            )
+        elif kind == "Q":
+            c1x, c1y, nx, ny = args
+            if not absolute:
+                c1x += x
+                c1y += y
+                nx += x
+                ny += y
+            x, y = nx, ny
+            parts.append(
+                "Q "
+                f"{_fmt_tikz_num(c1x)},{_fmt_tikz_num(c1y)} "
+                f"{_fmt_tikz_num(x)},{_fmt_tikz_num(y)}"
+            )
+        elif kind == "S":
+            c2x, c2y, nx, ny = args
+            if not absolute:
+                c2x += x
+                c2y += y
+                nx += x
+                ny += y
+            x, y = nx, ny
+            parts.append(
+                "S "
+                f"{_fmt_tikz_num(c2x)},{_fmt_tikz_num(c2y)} "
+                f"{_fmt_tikz_num(x)},{_fmt_tikz_num(y)}"
+            )
+        elif kind == "T":
+            nx, ny = args
+            if not absolute:
+                nx += x
+                ny += y
+            x, y = nx, ny
+            parts.append(f"T {_fmt_tikz_num(x)},{_fmt_tikz_num(y)}")
+        elif kind == "A":
+            rx, ry, phi_deg, large_flag, sweep_flag, nx, ny = args
+            if not absolute:
+                nx += x
+                ny += y
+            cubics = _ellipse_arc_cubics(
+                x,
+                y,
+                abs(rx),
+                abs(ry),
+                phi_deg,
+                large_flag != 0.0,
+                sweep_flag != 0.0,
+                nx,
+                ny,
+            )
+            if not cubics:
+                x, y = nx, ny
+                parts.append(f"L {_fmt_tikz_num(x)},{_fmt_tikz_num(y)}")
+            else:
+                for c1, c2, end in cubics:
+                    x, y = end
+                    parts.append(
+                        "C "
+                        f"{_fmt_tikz_num(c1[0])},{_fmt_tikz_num(c1[1])} "
+                        f"{_fmt_tikz_num(c2[0])},{_fmt_tikz_num(c2[1])} "
+                        f"{_fmt_tikz_num(x)},{_fmt_tikz_num(y)}"
+                    )
+        elif kind == "Z":
+            x, y = sub_x, sub_y
+            parts.append("Z")
+        else:
+            raise ValueError(f"Unknown SVG path command {command!r}")
+    return " ".join(parts)
+
+
 def draw_path_sketch(
     sketch: Any, exceptions: Collection[str] | None = None
 ) -> str:
@@ -1065,7 +1331,8 @@ def draw_path_sketch(
     if sketch.back_style == BackStyle.PATTERN and sketch.fill and sketch.closed:
         options.extend(get_pattern_options(sketch))
     option_text = f"[{', '.join(options)}]" if options else ""
-    body = f"{res}{option_text} svg {{{sketch.path_data}}};\n"
+    path_data = _svg_path_for_tikz(sketch.path_data)
+    body = f"{res}{option_text} svg {{{path_data}}};\n"
 
     label_lines = []
     index_draw = prepare_shape_index_labels(sketch)
@@ -1099,7 +1366,7 @@ def draw_text_path_sketch(sketch: Any) -> str:
     Examples:
         >>> draw_text_path_sketch  # doctest: +SKIP
     """
-    path_data = sketch.path_data
+    path_data = _svg_path_for_tikz(sketch.path_data)
     text_value = detokenize(sketch.text)
     deco = [
         "text along path",

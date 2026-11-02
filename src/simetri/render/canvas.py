@@ -1026,6 +1026,8 @@ class Canvas:
         about: PointType = (0, 0),
         show: bool = False,
         midpoints: bool = False,
+        index_start: int = 0,
+        index_multiplier: int = 1,
         close_fig: bool = True,
         **kwargs: object,
     ) -> Self:
@@ -1037,10 +1039,11 @@ class Canvas:
                 ``matplotlib.pyplot`` snapshots its current figure as an image.
                 Use
                 ``draw(a, b)`` or ``draw([a, b])``. A ``Vector`` is
-                drawn as a line with an arrow head from the origin to
-                ``(x, y)``. ``vec_start`` places the tail; ``vec_end``
-                places the tip. If both are omitted, the tail is at the
-                origin. Only one is needed. If both are given and match
+                drawn as a line with an arrow head from its start point
+                to its end point. A vector built from components starts
+                at the origin. ``vec_start`` replaces the start;
+                ``vec_end`` replaces the end. Only one is needed. If
+                both are given and match
                 the Vector, a warning is issued; if they disagree,
                 ``ValueError`` is raised. Several Vectors in one call
                 share the same ``vec_start`` or ``vec_end``.
@@ -1075,11 +1078,30 @@ class Canvas:
             midpoints (bool, optional): With ``vertices=True``, label edge
                 midpoint coordinates as well as vertex coordinates. With
                 ``indices=True``, draw circles of radius 1 point at edge
-                midpoints and label them ``e0``, ``e1``, ... in edge order.
-                Both flags show both kinds of midpoint labels. Closed shapes
+                midpoints and label them ``e`` plus the edge index. Both
+                flags show both kinds of midpoint labels. Closed shapes
                 include the closing edge. Midpoint labels use the same
                 positioning and overlap avoidance as vertex labels.
                 Defaults to False.
+            index_start (int, optional): Number given to vertex 0 and edge 0.
+                A negative, zero, or positive integer. Vertex ``i`` is
+                labeled ``index_start + i * index_multiplier``. Edge labels
+                use that same number. Defaults to 0.
+            index_multiplier (int, optional): Step from one index to the
+                next. A positive or negative integer, used with or without
+                ``index_start``. ``0`` raises ``ValueError``. Defaults to 1.
+            names (bool, optional): If True, draw each shape's ``name``
+                as text at its midpoint. A shape whose ``name`` is None
+                is skipped. If that shape is the only shape in the call,
+                a warning is issued. ``name_offset=(dx, dy)`` is added
+                to that midpoint.
+                Defaults to ``(0, 0)`` when omitted. ``name_font_size``,
+                ``name_font_color``, ``name_font_family``,
+                ``name_font_alpha``, ``name_font_blend_mode``,
+                ``name_bold``, ``name_italic``, ``name_old_style_nums``,
+                ``name_overline``, ``name_small_caps``,
+                ``name_strike_through``, and ``name_underline`` style
+                that text.
             close_fig: Close the active Matplotlib figure after
                 ``draw(plt)`` snapshots it. Defaults to True. Set False to
                 keep editing or draw the same figure again.
@@ -1104,6 +1126,21 @@ class Canvas:
             True
             >>> sg.prepare_shape_index_labels(labeled.active_page.sketches[0])[1]
             [0, 1, 2, 'e0', 'e1', 'e2']
+            >>> stepped = sg.Canvas()
+            >>> stepped.draw(
+            ...     triangle,
+            ...     indices=True,
+            ...     midpoints=True,
+            ...     index_start=-2,
+            ...     index_multiplier=-1,
+            ... ) is stepped
+            True
+            >>> sg.prepare_shape_index_labels(stepped.active_page.sketches[0])[1]
+            [-2, -3, -4, 'e-2', 'e-3', 'e-4']
+            >>> sg.Canvas().draw(triangle, index_multiplier=0)
+            Traceback (most recent call last):
+                ...
+            ValueError: index_multiplier must be a positive or negative integer.
             >>> labeled.active_page.sketches[1].vertices
             [(20.0, 0.0), (40.0, 20.0), (20.0, 20.0)]
             >>> labeled.active_page.sketches[1].marker_size
@@ -1113,7 +1150,57 @@ class Canvas:
             True
             >>> sg.prepare_shape_vertex_coord_labels(coordinates.active_page.sketches[0])[1]
             ['(0.0, 0.0)', '(40.0, 0.0)', '(40.0, 40.0)', '(20.0, 0.0)', '(40.0, 20.0)', '(20.0, 20.0)']
+            >>> named_shape = sg.Shape(
+            ...     [(0, 0), (40, 0), (40, 20), (0, 20)], closed=True, name="x"
+            ... )
+            >>> named = sg.Canvas()
+            >>> named.draw(
+            ...     named_shape,
+            ...     names=True,
+            ...     name_offset=(2, 3),
+            ...     name_font_size=12,
+            ...     name_font_color=sg.red,
+            ... ) is named
+            True
+            >>> named.active_page.sketches[-1].text
+            'x'
+            >>> [float(value) for value in named.active_page.sketches[-1].pos[:2]]
+            [22.0, 13.0]
+            >>> named.active_page.sketches[-1].font_size
+            12
+            >>> named.active_page.sketches[-1].font_color
+            Color(0.898, 0.0, 0.0)
+            >>> import warnings
+            >>> with warnings.catch_warnings(record=True) as caught:
+            ...     warnings.simplefilter("always")
+            ...     quiet = sg.Canvas()
+            ...     drawn = quiet.draw(sg.Shape([(0, 0), (10, 0)]), names=True)
+            >>> drawn is quiet
+            True
+            >>> len(quiet.active_page.sketches)
+            1
+            >>> "shape.name is None" in str(caught[0].message)
+            True
+            >>> pair = sg.Canvas()
+            >>> pair.draw(
+            ...     sg.Shape([(0, 0), (10, 0)]),
+            ...     sg.Shape([(0, 10), (10, 10)], name="b"),
+            ...     names=True,
+            ... ) is pair
+            True
+            >>> [
+            ...     sketch.text
+            ...     for sketch in pair.active_page.sketches
+            ...     if sketch.subtype.name == "TAG_SKETCH"
+            ... ]
+            ['b']
         """
+        draw._check_index_start(index_start)
+        draw._check_index_multiplier(index_multiplier)
+        if index_start != 0:
+            kwargs["index_start"] = index_start
+        if index_multiplier != 1:
+            kwargs["index_multiplier"] = index_multiplier
         warn_unknown_kwargs(
             kwargs,
             get_draw_valid_kwargs(),
@@ -1846,11 +1933,24 @@ class Canvas:
             "monospace",
         }
 
-        for sketch in self.active_page.sketches:
+        sketches = list(self.active_page.sketches)
+        while sketches:
+            sketch = sketches.pop()
             if sketch.subtype == Types.TAG_SKETCH:
                 name = sketch.font_family
                 if name is not None and name not in latex_fonts:
                     user_fonts.add(name)
+            elif sketch.subtype in (
+                Types.CLIPPED_SKETCH,
+                Types.MASKED_SKETCH,
+            ):
+                for sketch_list in sketch.sketches:
+                    sketches.extend(sketch_list)
+            elif sketch.subtype in (
+                Types.COMPOSITE_SKETCH,
+                Types.TABLE_SKETCH,
+            ):
+                sketches.extend(sketch.sketches)
         return list(user_fonts.difference(latex_fonts))
 
     def grid(

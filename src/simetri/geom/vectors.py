@@ -71,7 +71,8 @@ class Vector:
 
         - Separate components: ``Vector(1, 2)`` or ``Vector(1, 2, 3)``
         - A sequence: ``Vector([1, 2])`` or ``Vector((1, 2, 3))``
-        - Two points: ``Vector(p1, p2)`` (from ``p1`` to ``p2``)
+        - Two points: ``Vector(p1, p2)`` (from ``p1`` to ``p2``).
+          Those points are kept as ``start`` and ``end``.
 
         Args:
             *args: Components, a sequence, or two points.
@@ -85,6 +86,13 @@ class Vector:
             100.0
             >>> tuple(sg.Vector([1, 2, 3]))
             (1, 2, 3)
+            >>> placed = sg.Vector((30, 0), (50, 30))
+            >>> placed.start
+            (30, 0)
+            >>> placed.end
+            (50, 30)
+            >>> tuple(placed)
+            (20, 30)
         """
         if not args:
             raise ValueError(
@@ -104,6 +112,8 @@ class Vector:
             if not all(isinstance(component, Real) for component in data):
                 raise ValueError("Vector components must be numeric.")
             self.data = data
+            self.start = tuple(0.0 for _ in data)
+            self.end = tuple(data)
             return
 
         if (
@@ -120,6 +130,8 @@ class Vector:
             self.data = [
                 coord_2 - coord_1 for coord_1, coord_2 in zip(point_1, point_2)
             ]
+            self.start = tuple(point_1)
+            self.end = tuple(point_2)
             return
 
         if len(args) not in (2, 3):
@@ -131,6 +143,8 @@ class Vector:
             raise ValueError("Vector components must be numeric.")
 
         self.data = list(args)
+        self.start = tuple(0.0 for _ in args)
+        self.end = tuple(args)
 
     @property
     def x(self) -> float:
@@ -167,7 +181,7 @@ class Vector:
 
     @property
     def midpoint(self) -> PointType:
-        """Center of the arrow drawn for this vector with its tail at the origin.
+        """Center of the arrow drawn from this vector's start to its end.
 
         ``canvas.draw(..., pos=)`` places this point on ``pos``. ``vec_start``
         and ``vec_end`` are draw arguments, so they are not part of this point.
@@ -181,7 +195,7 @@ class Vector:
         """
         from ..helpers.arrows import vec_arrow
 
-        arrow = vec_arrow(self, start=(0.0, 0.0))
+        arrow = vec_arrow(self, start=self.start)
         return arrow.midpoint
 
     def __repr__(self) -> str:

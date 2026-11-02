@@ -881,6 +881,36 @@ class Range:
         """
         return self.cell.content
 
+    def split(
+        self,
+        kind: str,
+        first: str,
+        second: str,
+        offset1: PointType = (0.0, 0.0),
+        offset2: PointType = (0.0, 0.0),
+    ) -> Self:
+        """Store a two-label split in this one cell (mutated).
+
+        ``kind``, ``first``, ``second``, ``offset1``, and ``offset2`` are
+        the ``SplitCell`` arguments. The cell content becomes that split.
+
+        Examples:
+            >>> table = Table(size=(1, 1), show_header=False)
+            >>> cell = table.cells[0, 0].split(
+            ...     "\\\\", "start_angle", "end_angle"
+            ... )
+            >>> cell.content.kind
+            '\\\\'
+            >>> cell.content.first
+            'start_angle'
+            >>> cell.content.second
+            'end_angle'
+        """
+        self.cell.content = SplitCell(
+            kind, first, second, offset1, offset2
+        )
+        return self
+
     def __iter__(self) -> Iterator[Cell]:
         for grid_row in self._grid_row_indices():
             for col_index in self._grid_col_indices():

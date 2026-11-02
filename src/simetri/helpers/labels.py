@@ -589,13 +589,32 @@ def _coord_label_vertex_indices(sketch: Any, n: int) -> list[int]:
     return list(range(n))
 
 
+def _index_numbering(sketch: Any) -> tuple[int, int]:
+    """Return ``(index_start, index_multiplier)`` stored on a sketch."""
+    if "index_start" in sketch.__dict__:
+        start = sketch.index_start
+    else:
+        start = 0
+    if "index_multiplier" in sketch.__dict__:
+        multiplier = sketch.index_multiplier
+    else:
+        multiplier = 1
+    return start, multiplier
+
+
+def _numbered_index(sketch: Any, index: int) -> int:
+    """Return the drawn number for one vertex or edge index."""
+    start, multiplier = _index_numbering(sketch)
+    return start + index * multiplier
+
+
 def _index_label_pairs(sketch: Any, n: int) -> list[tuple[int, Any]]:
     """Return ``(vertex_index, label_value)`` for each index label."""
     raw = getattr(sketch, "indices", False)
     if not raw:
         return []
     if isinstance(raw, bool):
-        return [(i, i) for i in range(n)]
+        return [(i, _numbered_index(sketch, i)) for i in range(n)]
     values = list(raw)
     if not values:
         raise ValueError("indices sequence must not be empty")
@@ -604,7 +623,7 @@ def _index_label_pairs(sketch: Any, n: int) -> list[tuple[int, Any]]:
             f"indices sequence length {len(values)} exceeds vertex count {n}"
         )
     if all(0 <= v < n for v in values):
-        return [(v, v) for v in values]
+        return [(v, _numbered_index(sketch, v)) for v in values]
     if all(v >= n for v in values):
         return [(i, values[i]) for i in range(len(values))]
     raise ValueError(
@@ -644,7 +663,7 @@ def _build_shape_label_rects(sketch: Any) -> list[LabelRect]:
     index_pairs = _index_label_pairs(sketch, n) if has_index else []
     if has_index:
         index_pairs.extend(
-            (n + edge_index, f"e{edge_index}")
+            (n + edge_index, f"e{_numbered_index(sketch, edge_index)}")
             for edge_index in range(len(midpoint_points))
         )
     index_label_indices = [vertex for vertex, _ in index_pairs]

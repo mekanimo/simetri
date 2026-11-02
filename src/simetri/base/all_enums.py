@@ -1589,6 +1589,7 @@ class _CanvasWarnings(StrEnum):
     flip_x = "canvas.flip_x"
     flip_y = "canvas.flip_y"
     missing_default = "canvas.missing_default"
+    missing_name = "canvas.missing_name"
     outside_page = "canvas.outside_page"
     save_path = "canvas.save_path"
     vertex_pad = "canvas.vertex_pad"
@@ -1606,6 +1607,9 @@ _CanvasWarnings.flip_y.__doc__ = (
 )
 _CanvasWarnings.missing_default.__doc__ = (
     "A style property name is not present in ``defaults``."
+)
+_CanvasWarnings.missing_name.__doc__ = (
+    "``names=True`` was used and the only shape drawn has ``name`` None."
 )
 _CanvasWarnings.outside_page.__doc__ = (
     "A sketch is completely outside the page limits during export."

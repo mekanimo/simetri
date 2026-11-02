@@ -300,6 +300,67 @@ def _svg_marker_attr(marker_id: str, closed: bool) -> str:
     return attr
 
 
+def _double_path_svg(
+    sketch: Any,
+    path_data: str,
+    style_shape_type: str,
+    fill_attr: str,
+    fill_rule_attr: str,
+    clip_attr: str,
+    mask_attr: str,
+    marker_attr: str,
+    skip_fill_style: bool,
+    exceptions: Collection[str] | None,
+) -> str:
+    """Two SVG paths: the line color, then the gap color on top.
+
+    Examples:
+        >>> _double_path_svg  # doctest: +SKIP
+    """
+    line_width = sketch_attrib(sketch, "line_width")
+    if line_width is None:
+        line_width = runtime_defaults["line_width"]
+    double_distance = sketch_attrib(sketch, "double_distance")
+    if double_distance is None:
+        double_distance = runtime_defaults["double_distance"]
+    outer_stroke_width = 2 * line_width + double_distance
+    line_color = sketch_attrib(sketch, "line_color")
+    if line_color is None:
+        line_color = runtime_defaults["line_color"]
+    outer_stroke = color_to_svg(line_color)
+    fill_style = ""
+    if not skip_fill_style:
+        fill_style = get_fill_style_options(
+            sketch, style_shape_type, exceptions=exceptions
+        )
+    omitted = list(exceptions) if exceptions is not None else []
+    omitted.extend(["stroke", "line_color", "line_width"])
+    extra_line_style = get_line_style_options(sketch, exceptions=omitted)
+    outer_style = " ".join(
+        part
+        for part in (
+            f"stroke: {outer_stroke};",
+            f"stroke-width: {outer_stroke_width};",
+            fill_style,
+            extra_line_style,
+        )
+        if part
+    ).strip()
+    outer = (
+        f'<path d="{path_data}" style="{outer_style}"'
+        f"{fill_attr}{fill_rule_attr}{clip_attr}{mask_attr}{marker_attr} />"
+    )
+    double_color = sketch_attrib(sketch, "double_color")
+    if double_color is None:
+        double_color = runtime_defaults["double_color"]
+    gap_stroke = color_to_svg(double_color)
+    gap_style = (
+        f"stroke: {gap_stroke}; stroke-width: {double_distance}; fill: none;"
+    )
+    gap = f'<path d="{path_data}" style="{gap_style}" />'
+    return f"{outer}\n{gap}"
+
+
 def draw_path_sketch(
     sketch: PathSketch,
     exceptions: Collection[str] | None = None,
@@ -310,8 +371,27 @@ def draw_path_sketch(
     ``get_draw`` and as polylines — so default ``fill=True`` does not paint a
     closed region.
 
+    ``draw_double`` paints the path twice: a stroke of width
+    ``2 * line_width + double_distance`` in the line color, then a stroke of
+    width ``double_distance`` in ``double_color``.
+
     Examples:
-        >>> draw_path_sketch  # doctest: +SKIP
+        >>> import simetri.graphics as sg
+        >>> canvas = sg.Canvas()
+        >>> _ = canvas.draw(
+        ...     sg.Path2D().forward(40),
+        ...     draw_double=True,
+        ...     double_distance=3,
+        ... )
+        >>> sketch = canvas.active_page.sketches[-1]
+        >>> svg = draw_path_sketch(sketch)
+        >>> svg.count("<path ")
+        2
+        >>> outer = 2 * sketch.line_width + sketch.double_distance
+        >>> f"stroke-width: {outer};" in svg
+        True
+        >>> f"stroke-width: {sketch.double_distance};" in svg
+        True
     """
     path_data = sketch_attrib(sketch, "path_data")
     closed = bool(sketch_attrib(sketch, "closed"))
@@ -364,10 +444,24 @@ def draw_path_sketch(
                 path_data = _path_data_for_closed_markers(path_data)
             marker_attr = _svg_marker_attr(marker_id, closed)
 
-    path_svg = (
-        f'<path d="{path_data}"{class_attr}{style_attr}'
-        f"{fill_attr}{fill_rule_attr}{marker_attr} />"
-    )
+    if sketch_attrib(sketch, "draw_double"):
+        path_svg = _double_path_svg(
+            sketch,
+            path_data,
+            style_shape_type,
+            fill_attr,
+            fill_rule_attr,
+            clip_attr,
+            mask_attr,
+            marker_attr,
+            skip_fill_style,
+            exceptions,
+        )
+    else:
+        path_svg = (
+            f'<path d="{path_data}"{class_attr}{style_attr}'
+            f"{fill_attr}{fill_rule_attr}{marker_attr} />"
+        )
 
     elements = [path_svg]
     index_font_size = sketch_label_font_size_pt(sketch, "index")
@@ -410,6 +504,8 @@ def draw_path_sketch(
             )
 
     if len(elements) == 1:
+        if sketch_attrib(sketch, "draw_double"):
+            return path_svg
         return (
             f'<path d="{path_data}"{class_attr}{style_attr}'
             f"{fill_attr}{fill_rule_attr}{marker_attr}"
@@ -503,7 +599,10 @@ def draw_shape_sketch_with_indices(
 
     vertices = sketch_attrib(sketch, "vertices")
 
-    if sketch_attrib(sketch, "draw_markers"):
+    if (
+        sketch_attrib(sketch, "draw_markers")
+        and sketch_attrib(sketch, "markers_only")
+    ):
         shape_svg = draw_shape_sketch_with_markers(
             sketch, exceptions=exceptions
         )
@@ -523,9 +622,18 @@ def draw_shape_sketch_with_indices(
             style = f"{line_style} {fill_style}".strip()
             style_attr = f'style="{style}"' if style else ""
 
+        marker_attr = ""
+        if sketch_attrib(sketch, "draw_markers"):
+            marker_type = sketch_attrib(sketch, "marker_type")
+            if marker_type not in (MarkerType.EMPTY, MarkerType.INDICES):
+                marker_id = f"marker_{sketch_attrib(sketch, 'id')}"
+                marker_attr = _svg_marker_attr(marker_id, False)
+
         verts = " ".join([f"{vertex[0]},{vertex[1]}" for vertex in vertices])
-        attrs = " ".join([part for part in [class_attr, style_attr] if part])
-        shape_svg = f'<{shape_type} points="{verts}" {attrs}/>'
+        attrs = " ".join(
+            [part for part in [class_attr, style_attr] if part]
+        )
+        shape_svg = f'<{shape_type} points="{verts}" {attrs}{marker_attr}/>'
 
     index_font_size = sketch_label_font_size_pt(sketch, "index")
     vertex_font_size = sketch_label_font_size_pt(sketch, "vertex")

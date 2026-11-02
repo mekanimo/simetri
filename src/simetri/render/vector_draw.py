@@ -138,13 +138,19 @@ def _merge_style(
 
 
 def _placement_for_vector(
+    vector: Vector,
     draw_kwargs: dict[str, Any],
 ) -> tuple[PointType | None, PointType | None]:
-    """Remove vector placement kwargs and return tail/tip positions."""
+    """Remove vector placement kwargs and return tail/tip positions.
+
+    With neither argument, the vector's own start is used. Its end is
+    that start plus the displacement. ``vec_start`` or ``vec_end``
+    replaces that point; the other end follows the displacement.
+    """
     start = draw_kwargs.pop("vec_start", None)
     end = draw_kwargs.pop("vec_end", None)
     if start is None and end is None:
-        start = (0.0, 0.0)
+        start = vector.start
     return start, end
 
 
@@ -183,7 +189,7 @@ def vector_to_arrow(vector: Vector, draw_kwargs: dict[str, Any]) -> Group:
         >>> "vec_start" in kwargs
         False
     """
-    start, end = _placement_for_vector(draw_kwargs)
+    start, end = _placement_for_vector(vector, draw_kwargs)
     arrow = vec_arrow(vector, start=start, end=end)
     shaft_style = _merge_style(
         _default_shaft_style(),
@@ -262,6 +268,25 @@ def drawable_for_item(
         (40.0, 0.0)
         >>> kwargs
         {}
+        >>> placed, _ = drawable_for_item(sg.Vector((30, 0), (50, 30)), {})
+        >>> placed.p1
+        (30, 0)
+        >>> placed.p2
+        (50, 30)
+        >>> moved, _ = drawable_for_item(
+        ...     sg.Vector((30, 0), (50, 30)), {"vec_start": (0, 0)}
+        ... )
+        >>> moved.p1
+        (0, 0)
+        >>> moved.p2
+        (20, 30)
+        >>> tipped, _ = drawable_for_item(
+        ...     sg.Vector((30, 0), (50, 30)), {"vec_end": (10, 10)}
+        ... )
+        >>> tipped.p1
+        (-10, -20)
+        >>> tipped.p2
+        (10, 10)
     """
     if isinstance(item, Vector):
         part_kwargs = dict(draw_kwargs)

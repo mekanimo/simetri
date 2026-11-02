@@ -32,6 +32,7 @@ from .svg_colors import color_to_svg
 from .svg_mask import *
 from .svg_mask import _canvas_mask_scope_sketch
 from .svg_sketch import *
+from .svg_sketch import _svg_marker_attr
 from .svg_sketch_utils import *
 from .svg_utils import *
 
@@ -267,8 +268,7 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
             code = draw_arc_sketch(sketch, exceptions=suppressed_style_keys)
         elif subtype == Types.PATH_SKETCH:
             code = draw_path_sketch(sketch, exceptions=suppressed_style_keys)
-        elif draw_markers:
-            # Use marker rendering for shapes with markers enabled
+        elif draw_markers and sketch_attrib(sketch, "markers_only"):
             code = draw_shape_sketch_with_markers(
                 sketch, exceptions=suppressed_style_keys
             )
@@ -318,6 +318,26 @@ def get_svg_shapes(canvas: Canvas, styles_dict: dict) -> str:
     svg_sketch_utils_module.set_active_svg_style_ids({})
     code = "\n".join(code)
     return code
+
+
+def _shape_marker_attr(sketch: Any, shape_type: str) -> str:
+    """Marker references for a shape element that already has its stroke.
+
+    Polygon and polyline coordinates list each vertex once, so ``marker-end``
+    is the last vertex. A closed path returns to its first vertex, and that
+    end reference is omitted.
+
+    Examples:
+        >>> _shape_marker_attr  # doctest: +SKIP
+    """
+    if not sketch_attrib(sketch, "draw_markers"):
+        return ""
+    marker_type = sketch_attrib(sketch, "marker_type")
+    if marker_type in (MarkerType.EMPTY, MarkerType.INDICES):
+        return ""
+    marker_id = f"marker_{sketch.id}"
+    closed_path = shape_type == "path" and bool(sketch_attrib(sketch, "closed"))
+    return _svg_marker_attr(marker_id, closed_path)
 
 
 d_shape_types = {
@@ -464,7 +484,7 @@ def svg_shape(
         outer_element = (
             f"<{shape_type}\n"
             f'style="{outer_style}"{fill_rule_attr}{clip_attr}{mask_attr}'
-            f"{transform_attr}\n"
+            f"{transform_attr}{_shape_marker_attr(sketch, shape_type)}\n"
             f"{coordinates}\n"
             f"/>"
         )
@@ -498,7 +518,7 @@ def svg_shape(
             style_attr = f' style="{style}"'
 
     return f"""<{shape_type}
-{class_attr}{style_attr}{fill_attr_str}{fill_rule_attr}{clip_attr}{mask_attr}{transform_attr}
+{class_attr}{style_attr}{fill_attr_str}{fill_rule_attr}{clip_attr}{mask_attr}{transform_attr}{_shape_marker_attr(sketch, shape_type)}
 {coordinates}
 />"""
 
@@ -1112,7 +1132,29 @@ def get_svg_code(canvas: Canvas) -> str:
         str: Full SVG document markup.
 
     Examples:
-        >>> get_svg_code  # doctest: +SKIP
+        >>> import simetri.graphics as sg
+        >>> from simetri.render.render_svg.svg import get_svg_code
+        >>> dashed = sg.Canvas()
+        >>> dashed.draw(
+        ...     sg.Shape([(0, 0), (40, 0), (40, 20)], closed=True),
+        ...     line_dash_array=[3, 4],
+        ...     fill=False,
+        ... )
+        Canvas()
+        >>> marked = sg.Canvas()
+        >>> marked.draw(
+        ...     sg.Shape([(0, 0), (40, 0), (40, 20)], closed=True),
+        ...     line_dash_array=[3, 4],
+        ...     fill=False,
+        ...     draw_markers=True,
+        ... )
+        Canvas()
+        >>> "stroke-dasharray: 3 4" in get_svg_code(dashed)
+        True
+        >>> "stroke-dasharray: 3 4" in get_svg_code(marked)
+        True
+        >>> "marker-start" in get_svg_code(marked)
+        True
     """
     from ..canvas import (
         _effective_border_for_export,

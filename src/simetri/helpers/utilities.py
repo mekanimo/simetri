@@ -2717,3 +2717,38 @@ def get_cycle_size(values: list) -> int:
             return len(cycle)
 
     return len(values)
+
+
+def index_pos(
+    shape: Any,
+    index: int,
+    index_offset: float,
+) -> tuple[float, float]:
+    """Return the index label position used by ``canvas.draw(..., indices=True)``.
+
+    Vertex ``index`` is placed by the same layout as a shape drawn with
+    ``indices=True`` and this ``index_offset``.
+
+    Args:
+        shape: Shape whose vertices are labeled.
+        index: Vertex index.
+        index_offset: Distance from the vertex to the label.
+
+    Returns:
+        tuple[float, float]: Label position.
+
+    Examples:
+        >>> import simetri.graphics as sg
+        >>> shape = sg.Shape([(0, 0), (40, 0), (0, 40)])
+        >>> sg.index_pos(shape, 0, 5.0)
+        (-3.5355339059327373, -3.5355339059327373)
+        >>> canvas = sg.Canvas()
+        >>> canvas.draw(shape, indices=True, index_offset=5.0)
+        Canvas()
+        >>> drawn = sg.prepare_shape_index_labels(canvas.active_page.sketches[0])[0]
+        >>> drawn[1] == sg.index_pos(shape, 1, 5.0)
+        True
+    """
+    from .labels import vert_label_layout
+
+    return vert_label_layout(shape, index_offset)[index]["position"]

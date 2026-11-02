@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from math import ceil
 from typing import TYPE_CHECKING, NamedTuple
 
+import matplotlib.font_manager as font_manager
 import pymupdf as fitz
 
 from simetri.base.all_enums import TexLoc, Types
@@ -64,6 +65,24 @@ def _shell_output_suggests_missing_compiler(text: str) -> bool:
         or ": command not found" in lowered
         or "command not found" in lowered
     )
+
+
+def _fontspec_family_name(font: str) -> str:
+    """Return the installed family name that matches ``font``.
+
+    The match ignores case. A name that is not installed is returned
+    unchanged, and TeX then reports that missing font.
+
+    Examples:
+        >>> from simetri.render.tex import _fontspec_family_name
+        >>> _fontspec_family_name("this-font-is-not-installed")
+        'this-font-is-not-installed'
+    """
+    wanted = font.casefold()
+    for entry in font_manager.fontManager.ttflist:
+        if entry.name.casefold() == wanted:
+            return entry.name
+    return font
 
 
 def remove_aux_files(file_path: str | os.PathLike[str]) -> None:
@@ -406,6 +425,15 @@ class Tex:
             >>> from simetri.render.tex import Tex
             >>> len(Tex().get_preamble(sg.Canvas())) > 0
             True
+            >>> canvas = sg.Canvas()
+            >>> table = sg.Table(title="Arcs")
+            >>> table.title.font_family = "arial"
+            >>> _ = canvas.draw(table)
+            >>> preamble = Tex().get_preamble(canvas)
+            >>> "fontspec" in preamble
+            True
+            >>> "\\\\newfontfamily\\\\arial" in preamble
+            True
         """
         libraries, packages = self.get_packages(canvas)
 
@@ -449,8 +477,9 @@ class Tex:
             if font is None:
                 continue
             font_family = font.replace(" ", "")
+            font_name = _fontspec_family_name(font)
             fonts_section += (
-                f"\\newfontfamily\\{font_family}[Scale=1.0]{{{font}}}\n"
+                f"\\newfontfamily\\{font_family}[Scale=1.0]{{{font_name}}}\n"
             )
         preamble = f"{doc_class}{packages}{libraries}{fonts_section}"
 

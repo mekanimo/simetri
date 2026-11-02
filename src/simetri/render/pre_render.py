@@ -398,5 +398,10 @@ def collect_tikz_preamble_requirements(
             if sketch.subtype in (Types.CLIPPED_SKETCH, Types.MASKED_SKETCH):
                 for sketch_list in sketch.sketches:
                     sketches_to_inspect.extend(sketch_list)
+            elif sketch.subtype in (
+                Types.COMPOSITE_SKETCH,
+                Types.TABLE_SKETCH,
+            ):
+                sketches_to_inspect.extend(sketch.sketches)
 
     return tikz_libraries, tikz_packages

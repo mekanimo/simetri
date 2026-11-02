@@ -216,6 +216,7 @@ class Shape(Base, CommonStyle):
         color: Color | None = None,
         subtype: Types = Types.SHAPE,
         xform_matrix: NDArray | None = None,
+        name: str | None = None,
     ) -> None:
         """Initialize a Shape.
 
@@ -242,6 +243,8 @@ class Shape(Base, CommonStyle):
             smooth: Prefer smooth curve rendering when applicable.
             subtype: Shape subtype. Defaults to ``Types.SHAPE``.
             xform_matrix: Optional initial transform.
+            name: Text drawn by ``canvas.draw(..., names=True)``.
+                Defaults to None.
 
         Raises:
             ValueError: If ``subtype`` is not a ``Types`` member.
@@ -251,6 +254,14 @@ class Shape(Base, CommonStyle):
             >>> s.vertices
             ((0.0, 0.0), (40.0, 0.0), (40.0, 40.0))
             >>> s.closed
+            True
+            >>> named = sg.Shape([(0, 0), (40, 0)], name="x")
+            >>> named.name
+            'x'
+            >>> named.name = "y"
+            >>> named.name
+            'y'
+            >>> sg.Shape([(0, 0), (40, 0)]).name is None
             True
         """
 
@@ -306,6 +317,7 @@ class Shape(Base, CommonStyle):
             raise ValueError(f"Invalid value for subtype: {subtype}")
         self.subtype = subtype
         self.visible = True
+        self.name = name
 
         self._b_box = None
 
