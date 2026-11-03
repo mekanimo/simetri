@@ -2155,7 +2155,7 @@ def set_defaults() -> None:
     )
 
     _default_store.factory["n_circle_points"] = (
-        30  # number of points for circles
+        60  # number of points for circles
     )
     default_types["n_circle_points"] = int
     defaults_help["n_circle_points"] = (
