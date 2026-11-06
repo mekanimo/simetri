@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from functools import cache
-from math import pi, radians, sin
+from math import cos, hypot, pi, radians, sin
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Self
 
@@ -398,15 +398,27 @@ def circle(
         >>> canvas.active_page.sketches[-1].subtype.name
         'CIRCLE_SKETCH'
     """
-    x, y = center[:2]
-    p1 = x - radius, y - radius
-    p2 = x + radius, y + radius
-    p3 = x - radius, y + radius
-    p4 = x + radius, y - radius
-    self._all_vertices.extend([p1, p2, p3, p4])
     self._sketch_xform_matrix = self.xform_matrix
     sketch = _circle_sketch(center, radius, self._sketch_xform_matrix)
     self._sketch_xform_matrix = identity_matrix()
+    center_x, center_y = sketch.center[:2]
+    if sketch.subtype == Types.ELLIPSE_SKETCH:
+        angle = sketch.angle
+        cosine = cos(angle)
+        sine = sin(angle)
+        half_width = hypot(sketch.x_radius * cosine, sketch.y_radius * sine)
+        half_height = hypot(sketch.x_radius * sine, sketch.y_radius * cosine)
+    else:
+        half_width = sketch.radius
+        half_height = sketch.radius
+    self._all_vertices.extend(
+        [
+            (center_x - half_width, center_y - half_height),
+            (center_x + half_width, center_y - half_height),
+            (center_x - half_width, center_y + half_height),
+            (center_x + half_width, center_y + half_height),
+        ]
+    )
     resolved = self.resolve_style_properties(sketch, shape_style_map, **kwargs)
     for attrib_name, attrib_value in resolved.items():
         setattr(sketch, attrib_name, attrib_value)
